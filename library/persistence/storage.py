@@ -88,8 +88,8 @@ class LibraryRepository:
         authors.append(author)
 
     @staticmethod
-    def read_author(fullname: str):
-        found_authors = [x for x in authors if x.fullname == fullname]
+    def read_author(firstname: str, lastname: str):
+        found_authors = [x for x in authors if x.firstname == firstname and x.lastname == lastname]
         if len(found_authors) > 0:
             return found_authors[0]
         return None

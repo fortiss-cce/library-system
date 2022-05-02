@@ -1,23 +1,23 @@
 class Author:
 
-    fullname: str
+    firstname: str
+    lastname: str
+    
+    def __init__(self, firstname: str, lastname: str):
+        self.firstname = firstname
+        self.lastname = lastname
 
-    def __init__(self, fullname: str):
-        self.fullname = fullname
-
-        def get_firstname(self) -> str:
-            name_parts = self._split_name_parts()
-            return name_parts[0]
+    def get_firstname(self) -> str:
+        return self.firstname
 
     def get_lastname(self) -> str:
-        name_parts = self._split_name_parts()
-        return name_parts[-1]
+        return self.lastname
 
-    def _split_name_parts(self) -> list[str]:
-        return self.fullname.split()
+    def get_fullname(self) -> str:
+        return f"{self.firstname} {self.lastname}"
 
     def __eq__(self, other):
         """Overrides the default implementation"""
         if isinstance(other, Author):
-            return self.fullname == other.fullname
+            return self.get_fullname() == other.get_fullname()
         return NotImplemented
