@@ -1,3 +1,11 @@
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from library.model.book import Book
+    from library.model.user import User
+    from library.model.author import Author
+    from library.model.publisher import Publisher
+    from library.payment.invoice import Invoice
+
 users: list["User"] = []
 books: list["Book"] = []
 authors: list["Author"] = []
@@ -128,7 +136,7 @@ class LibraryRepository:
         invoices.append(invoice)
 
     @staticmethod
-    def read_invoice(id: int):
+    def read_invoice(id: str):
         found_invoices = [x for x in invoices if x.id == id]
         if len(found_invoices) > 0:
             return found_invoices[0]
