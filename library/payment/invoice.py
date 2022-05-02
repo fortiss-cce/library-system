@@ -24,22 +24,18 @@ class Invoice:
         self.books.append(book)
 
     def __str__(self):
-        return (
-            f"-- Invoice (id: {self.id}) --"
-            + f"This is the invoice for customer '{self.customer.firstname} {self.customer.lastname}' ({self.customer.email})"
-            + "\n"
-            + f"Returned books: {len(self.books)}"
-            + "\n"
-            + "\n".join(str(book) + ": " + str(book.current_fee) for book in self.books)
-            + "\n"
-            + "-----------------------------------------"
-            + "\n"
-            + f"Total amount after discount: {self.calculate_fee(self.customer)[0]} €"
-            + "\n"
-            + f"Gained reading credits for your next purchase: {self.calculate_fee(self.customer)[1]}"
-            + "\n"
-            + f"The invoice is {'' if self.is_closed else 'not'} paid."
-        )
+        invoice_books = "\n".join(str(book) + ": " + str(book.current_fee) for book in self.books)
+        return f"""-- Invoice (id: {self.id}) --
+            This is the invoice for customer '{self.customer.firstname} {self.customer.lastname}' ({self.customer.email})
+            Returned books: {len(self.books)}
+
+            {invoice_books}
+
+            -----------------------------------------
+            
+            Total amount after discount: {self.calculate_fee(self.customer)[0]} €
+            Gained reading credits for your next purchase: {self.calculate_fee(self.customer)[1]}
+            The invoice is {'' if self.is_closed else 'not'} paid."""
 
     def calculate_fee(self, user: User) -> tuple[float, int]:
         price_per_book: float = 3.55

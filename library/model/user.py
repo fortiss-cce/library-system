@@ -87,12 +87,13 @@ class User:
         return NotImplemented
 
     def __str__(self):
-        return (
-            f"{self.firstname}, {self.lastname} ({self.email}): {self.country_calling_code}{self.area_code}/{self.landline_number}"
-            + "\n_______BORROWED BOOKS________\n"
-            + "\n".join(str(book) for book in self.borrowed_books)
-            + "\n_______READ BOOKS________\n"
-            + "\n".join(str(book) for book in self.read_books)
-            + "\n"
-            + f"Open invoices: {[x.id for x in self.invoices]}"
-        )
+        borrowed_books = "\n".join(str(book) for book in self.borrowed_books)
+        read_books = "\n".join(str(book) for book in self.read_books)
+        return f"""{self.firstname}, {self.lastname} ({self.email}): {self.country_calling_code}{self.area_code}/{self.landline_number}
+            _______BORROWED BOOKS________
+            {borrowed_books}
+            _______READ BOOKS________
+            {read_books}
+            
+            Open invoices: {[x.id for x in self.invoices]}
+        """
