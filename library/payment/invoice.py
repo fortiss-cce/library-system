@@ -1,4 +1,6 @@
 from datetime import datetime
+import uuid
+
 from library.model.user import User
 from library.model.book import BorrowedBook, Book
 from library.payment.credit_card import CreditCard
@@ -8,13 +10,13 @@ from library.persistence.storage import LibraryRepository
 
 class Invoice:
 
-    id: int
+    id: str
     books: list[BorrowedBook]
     customer: User
     is_closed: bool = False
 
     def __init__(self, user: User):
-        self.id = len(LibraryRepository.read_invoices())
+        self.id = str(uuid.uuid4())
         self.customer = user
         self.books = []
 
