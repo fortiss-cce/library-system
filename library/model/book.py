@@ -163,7 +163,7 @@ class BookSerializer:
             book_info = {
                 "id": book.isbn,
                 "title": book.title,
-                "authors": [author.fullname for author in book.authors],
+                "authors": [author.get_fullname() for author in book.authors],
                 "available_items": book.existing_items - book.borrowed_items,
                 "borrowed_items": book.borrowed_items,
             }
@@ -173,7 +173,7 @@ class BookSerializer:
             title = et.SubElement(book_info, "title")
             title.text = book.title
             authors = et.SubElement(book_info, "authors")
-            authors.text = ", ".join([author.fullname for author in book.authors])
+            authors.text = ", ".join([author.get_fullname() for author in book.authors])
             avail = et.SubElement(book_info, "available")
             avail.text = str(book.existing_items - book.borrowed_items)
             authors = et.SubElement(book_info, "borrowed")
