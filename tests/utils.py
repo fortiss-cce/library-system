@@ -10,7 +10,7 @@ from library.persistence.storage import LibraryRepository
 
 
 def create_test_book(available=True):
-    a1 = Author("Eric","Topol")
+    a1 = Author("Eric", "Topol")
     LibraryRepository.create_author(a1)
     p1 = Publisher("Basic Books")
     LibraryRepository.create_publisher(p1)

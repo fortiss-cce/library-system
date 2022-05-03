@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
+
 if TYPE_CHECKING:
     from library.model.book import Book
     from library.model.user import User

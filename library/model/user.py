@@ -92,6 +92,6 @@ class User:
             {borrowed_books}
             _______READ BOOKS________
             {read_books}
-            
+
             Open invoices: {[x.id for x in self.invoices]}
         """

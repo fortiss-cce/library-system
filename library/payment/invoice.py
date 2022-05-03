@@ -32,7 +32,7 @@ class Invoice:
             {invoice_books}
 
             -----------------------------------------
-            
+
             Total amount after discount: {self.calculate_fee(self.customer)[0]} €
             Gained reading credits for your next purchase: {self.calculate_fee(self.customer)[1]}
             The invoice is {'' if self.is_closed else 'not'} paid."""
