@@ -19,9 +19,7 @@ class User:
     mobile_number2: str
     reading_credits: int = 0
 
-    def __init__(
-        self, email, firstname, lastname, mob1, mob2, area_code, landline, country_code
-    ):
+    def __init__(self, email, firstname, lastname, mob1, mob2, area_code, landline, country_code):
         self.email = email
         self.firstname = firstname
         self.lastname = lastname

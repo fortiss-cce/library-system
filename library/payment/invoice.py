@@ -57,7 +57,6 @@ class Invoice:
             reading_credits,
         )
 
-    # TODO process everything and close the invoice and update the repository
     def process_invoice_with_credit_card_detail(
         self, number: str, cvv: str, expiration: datetime
     ) -> bool:

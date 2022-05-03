@@ -23,20 +23,7 @@ class Book:
     _book_type: str
     duration: int = 0
 
-    def __init__(
-        self,
-        title: str,
-        authors,
-        publisher,
-        pub_date,
-        genres,
-        pages,
-        isbn,
-        type,
-        duration=0,
-        existing_items=1,
-        borrowed_items=0,
-    ):
+    def __init__(self, title: str, authors, publisher, pub_date,  genres, pages, isbn, type, duration=0, existing_items=1, borrowed_items=0):
         self.title = title
         self.authors = authors
         self.publisher = publisher
