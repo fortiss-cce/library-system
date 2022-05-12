@@ -1,7 +1,7 @@
 from copy import copy
 from datetime import timedelta
 from pytest_bdd import scenario, given, when, then
-from library.model.book import Book, BorrowedBook
+from library.model.book import Book, BookBorrowed
 
 from library.model.user import User
 from library.persistence.storage import LibraryRepository
@@ -37,7 +37,7 @@ def renew_rental(user: User):
 
 
 @then("I should have the book borrowed")
-def correct_borrowed_book(user: User, renewed: BorrowedBook):
+def correct_borrowed_book(user: User, renewed: BookBorrowed):
     assert len(user.borrowed_books) == 1
     assert user.borrowed_books[0] == renewed
 
@@ -53,7 +53,7 @@ def no_read_books(user: User):
 
 
 @then("the rental time should be increased")
-def time_increased(borrowed: BorrowedBook, renewed: BorrowedBook):
+def time_increased(borrowed: BookBorrowed, renewed: BookBorrowed):
     assert borrowed is not None
     assert renewed is not None
     assert borrowed.due_date < renewed.due_date
@@ -61,14 +61,14 @@ def time_increased(borrowed: BorrowedBook, renewed: BorrowedBook):
 
 
 @then("the current fee should be increased")
-def fee_increased(borrowed: BorrowedBook, renewed: BorrowedBook):
+def fee_increased(borrowed: BookBorrowed, renewed: BookBorrowed):
     assert borrowed is not None
     assert renewed is not None
     assert borrowed.current_fee < renewed.current_fee
 
 
 @then("the book availability should not change")
-def availability_not_updated(borrowed: BorrowedBook, renewed: BorrowedBook, book: Book):
+def availability_not_updated(borrowed: BookBorrowed, renewed: BookBorrowed, book: Book):
     assert book.isbn == borrowed.isbn and book.isbn == renewed.isbn
     updated_book = LibraryRepository.read_book(renewed.isbn)
     assert updated_book is not None and updated_book.borrowed_items == 1
@@ -76,7 +76,7 @@ def availability_not_updated(borrowed: BorrowedBook, renewed: BorrowedBook, book
 
 
 @then("the user should have the correct borrowed book")
-def user_updated(user: User, renewed: BorrowedBook):
+def user_updated(user: User, renewed: BookBorrowed):
     updated_user = LibraryRepository.read_user(user.email)
     assert updated_user is not None
     assert len(updated_user.borrowed_books) == 1

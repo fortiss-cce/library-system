@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
 users: list[User] = []
 books: list[Book] = []
+books_borrowed: list[Book] = []
 authors: list[Author] = []
 publishers: list[Publisher] = []
 invoices: list[Invoice] = []
@@ -49,17 +50,22 @@ class LibraryRepository:
         return None
 
     @staticmethod
-    def update_book(book: Book):
-        index = books.index(book)
-        if index >= 0:
-            books[index] = book
-
-    @staticmethod
     def delete_book(book: Book):
         index = books.index(book)
         if index >= 0:
             books.remove(book)
 
+    @staticmethod
+    def borrow_book(book: Book):
+        books.remove(book)
+        books_borrowed.append(book)
+
+    @staticmethod
+    def return_book(book: Book):
+        books_borrowed.remove(book)
+        books.append(book)
+
+        
     # users
     @staticmethod
     def create_user(user: User):
@@ -71,12 +77,6 @@ class LibraryRepository:
         if len(found_users) > 0:
             return found_users[0]
         return None
-
-    @staticmethod
-    def update_user(user: User):
-        index = users.index(user)
-        if index >= 0:
-            users[index] = user
 
     @staticmethod
     def delete_user(user: User):
@@ -97,12 +97,6 @@ class LibraryRepository:
         return None
 
     @staticmethod
-    def update_author(author: Author):
-        index = authors.index(author)
-        if index >= 0:
-            authors[index] = author
-
-    @staticmethod
     def delete_author(author: Author):
         index = authors.index(author)
         if index >= 0:
@@ -121,12 +115,6 @@ class LibraryRepository:
         return None
 
     @staticmethod
-    def update_publisher(publisher: Publisher):
-        index = publishers.index(publisher)
-        if index >= 0:
-            publishers[index] = publisher
-
-    @staticmethod
     def delete_publisher(publisher: Publisher):
         index = publishers.index(publisher)
         if index >= 0:
@@ -143,12 +131,6 @@ class LibraryRepository:
         if len(found_invoices) > 0:
             return found_invoices[0]
         return None
-
-    @staticmethod
-    def update_invoice(invoice: Invoice):
-        index = invoices.index(invoice)
-        if index >= 0:
-            invoices[index] = invoice
 
     @staticmethod
     def delete_invoice(invoice: Invoice):

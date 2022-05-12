@@ -1,6 +1,6 @@
 from typing import Optional
 from pytest_bdd import scenario, given, when, then
-from library.model.book import Book, BorrowedBook
+from library.model.book import Book, BookBorrowed
 
 from library.model.user import User
 from library.payment.invoice import Invoice
@@ -40,7 +40,7 @@ def book_not_borrowed():
 
 
 @when("I return the book", target_fixture="invoice")
-def return_book(user: User, borrowed: BorrowedBook):
+def return_book(user: User, borrowed: BookBorrowed):
     invoice: Optional[Invoice] = user.return_books([borrowed])
     return invoice
 
@@ -51,7 +51,7 @@ def receive_invoice(invoice: Invoice):
 
 
 @then("the invoice should be valid")
-def invoice_correct(invoice: Invoice, borrowed: BorrowedBook):
+def invoice_correct(invoice: Invoice, borrowed: BookBorrowed):
     assert len(invoice.books) == 1
     assert invoice.books[0] == borrowed
 
@@ -62,7 +62,7 @@ def invoice_exists(invoice: Invoice):
 
 
 @then("the book availability should be updated")
-def availability_updated(borrowed: BorrowedBook, book: Book):
+def availability_updated(borrowed: BookBorrowed, book: Book):
     assert borrowed.existing_items - borrowed.borrowed_items == 1
     updated_book = LibraryRepository.read_book(book.isbn)
     assert updated_book is not None
@@ -76,7 +76,7 @@ def error_message(invoice: Invoice):
 
 
 @then("the book availability should not change")
-def availability_not_updated(borrowed: BorrowedBook, book: Book):
+def availability_not_updated(borrowed: BookBorrowed, book: Book):
     assert borrowed is None
     updated_book = LibraryRepository.read_book(book.isbn)
     assert updated_book is not None and updated_book.borrowed_items == 0

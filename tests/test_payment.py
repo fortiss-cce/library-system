@@ -1,7 +1,7 @@
 from typing import Optional
 import pytest
 from pytest_bdd import scenario, given, when, then
-from library.model.book import Book, BorrowedBook
+from library.model.book import Book, BookBorrowed
 
 from library.model.user import User
 from library.payment.credit_card import CreditCard
@@ -79,7 +79,7 @@ def book_borrowed(user: User):
 
 
 @given("the user returns the book", target_fixture="invoice")
-def return_book(user: User, borrowed: BorrowedBook):
+def return_book(user: User, borrowed: BookBorrowed):
     invoice: Optional[Invoice] = user.return_books([borrowed])
     return invoice
 
@@ -101,7 +101,7 @@ def invoice_customer_correct(invoice: Invoice, user: User):
 
 
 @then("the items on the invoice should be correct")
-def invoice_items_correct(invoice: Invoice, borrowed: BorrowedBook):
+def invoice_items_correct(invoice: Invoice, borrowed: BookBorrowed):
     assert len(invoice.books) == 1
     assert invoice.books[0] == borrowed
 
@@ -165,7 +165,7 @@ def credit_card_low_limit(card: CreditCard):
 @when("the limit of the card is higher than the fee")
 def credit_card_high_limit(user: User, card: CreditCard, invoice: Invoice):
     user.reading_credits = 0
-    card.amount = invoice.calculate_fee(user)[0] + 1.0
+    card.amount = invoice.calculate_fee(user) + 1.0
 
 
 @then("the card limit should not change")
@@ -181,7 +181,7 @@ def credit_card_changed(card: CreditCard):
 @then("the account balance should be updated")
 def account_balance_changed(paypal, invoice: Invoice, user: User):
     user.reading_credits = 0
-    assert PAYPAL_ACCOUNT_BALANCE[paypal[0]] == 100.0 - invoice.calculate_fee(user)[0]
+    assert PAYPAL_ACCOUNT_BALANCE[paypal[0]] == 100.0 - invoice.calculate_fee(user)
 
 
 @then("the invoice should be updated in storage")
