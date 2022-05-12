@@ -1,7 +1,7 @@
 from typing import Optional
 import pytest
 from pytest_bdd import scenario, given, when, then
-from library.model.book import Book, BorrowedBook
+from library.model.book import Book, BookBorrowed
 
 from library.model.user import User
 from library.payment.credit_card import CreditCard
@@ -79,7 +79,7 @@ def book_borrowed(user: User):
 
 
 @given("the user returns the book", target_fixture="invoice")
-def return_book(user: User, borrowed: BorrowedBook):
+def return_book(user: User, borrowed: BookBorrowed):
     invoice: Optional[Invoice] = user.return_books([borrowed])
     return invoice
 
@@ -101,7 +101,7 @@ def invoice_customer_correct(invoice: Invoice, user: User):
 
 
 @then("the items on the invoice should be correct")
-def invoice_items_correct(invoice: Invoice, borrowed: BorrowedBook):
+def invoice_items_correct(invoice: Invoice, borrowed: BookBorrowed):
     assert len(invoice.books) == 1
     assert invoice.books[0] == borrowed
 

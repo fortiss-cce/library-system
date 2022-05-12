@@ -1,5 +1,5 @@
 from pytest_bdd import scenario, given, when, then
-from library.model.book import Book, BorrowedBook
+from library.model.book import Book, BookBorrowed
 
 from library.model.user import User
 from library.persistence.storage import LibraryRepository
@@ -37,24 +37,24 @@ def borrow_book(user: User, book: Book):
 
 
 @then("I should receive a borrowed book")
-def no_error_message(borrowed: BorrowedBook):
+def no_error_message(borrowed: BookBorrowed):
     assert borrowed is not None
 
 
 @then("I should not receive/borrow book")
-def error_message(borrowed: BorrowedBook):
+def error_message(borrowed: BookBorrowed):
     assert borrowed is None
 
 
 @then("the book availability should be updated")
-def availability_updated(borrowed: BorrowedBook, book: Book):
+def availability_updated(borrowed: BookBorrowed, book: Book):
     assert borrowed.existing_items - borrowed.borrowed_items == 0
     updated_book = LibraryRepository.read_book(book.isbn)
     assert updated_book is not None and updated_book.borrowed_items == 1
 
 
 @then("the book availability should not change")
-def availability_not_updated(borrowed: BorrowedBook, book: Book):
+def availability_not_updated(borrowed: BookBorrowed, book: Book):
     assert borrowed is None
     updated_book = LibraryRepository.read_book(book.isbn)
     assert updated_book is not None and updated_book.borrowed_items == 1

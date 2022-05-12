@@ -2,7 +2,7 @@ from datetime import datetime
 import uuid
 
 from library.model.user import User
-from library.model.book import BorrowedBook, Book
+from library.model.book import BookBorrowed, Book
 from library.payment.credit_card import CreditCard
 from library.payment.paypal import PAYPAL_ACCOUNT_BALANCE, PAYPAL_DATA_BASE
 from library.persistence.storage import LibraryRepository
@@ -11,7 +11,7 @@ from library.persistence.storage import LibraryRepository
 class Invoice:
 
     id: str
-    books: list[BorrowedBook]
+    books: list[BookBorrowed]
     customer: User
     is_closed: bool = False
 
@@ -20,7 +20,7 @@ class Invoice:
         self.customer = user
         self.books = []
 
-    def add_book(self, book: BorrowedBook):
+    def add_book(self, book: BookBorrowed):
         self.books.append(book)
 
     def calculate_fee(self, user: User) -> tuple[float, int]:

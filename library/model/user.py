@@ -1,5 +1,5 @@
 from typing import NamedTuple
-from library.model.book import Book, BorrowedBook
+from library.model.book import Book, BookBorrowed
 from library.model.reading_creadits import reading_credits
 from library.payment.invoice import Invoice
 from library.persistence.storage import LibraryRepository
@@ -24,7 +24,7 @@ class PersonalData(NamedTuple):
 class User:
 
     personal_data: PersonalData
-    borrowed_books: list[BorrowedBook]
+    borrowed_books: list[BookBorrowed]
     read_books: list[Book]
     invoices: list[Invoice]
     reading_credits: int
@@ -42,7 +42,7 @@ class User:
         self.borrowed_books.append(borrowed_book)
         LibraryRepository.update_user(self)
 
-    def return_books(self, books: list[BorrowedBook]) -> Invoice:
+    def return_books(self, books: list[BookBorrowed]) -> Invoice:
         if not all(book in self.borrowed_books for book in books):
             raise ValueError("At least one book from the list is not borrowed and so cannot be returned")
         invoice: Invoice = Invoice(self)
