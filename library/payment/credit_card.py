@@ -25,3 +25,13 @@ class CreditCard:
             and self._valid_date > datetime.now()
             and self._cvv != "000"
         )
+
+    def pay(self, fee: float) -> bool:
+        if not self._card_is_present_and_valid(self):
+            return False
+        remaining_amount: float = self.amount - fee
+        if remaining_amount < 0:
+            print(f"Card limit reached - Balance: {remaining_amount}")
+            return False
+        self.amount = remaining_amount
+        return True

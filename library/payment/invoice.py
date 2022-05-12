@@ -9,7 +9,6 @@ from library.persistence.storage import LibraryRepository
 
 
 class Invoice:
-
     id: str
     books: list[BorrowedBook]
     customer: User
@@ -38,20 +37,29 @@ class Invoice:
             The invoice is {'' if self.is_closed else 'not'} paid."""
 
     def calculate_fee(self, user: User) -> tuple[float, int]:
+        # TODO Extract hardcoded variables to the config file or data object
         price_per_book: float = 3.55
         min_books_for_discount: int = 3
         discount_per_book: float = 0.5
         discount_per_reading_credit: float = 0.5
+
+        # Calculate the user credits amount
         current_reading_credits = user.reading_credits
         reading_credits: int = user.get_reading_credits(
             [Book.from_borrowed_book(book) for book in self.books]
         )
+
+        # Calculate the total price based on book price and book fee
         price: float = len(self.books) * price_per_book
+
         for book in self.books:
             price += book.current_fee
+
+        # Calculate discount based on the user credits
         discount_count: int = max(0, len(self.books) - min_books_for_discount)
         discount: float = discount_count * discount_per_book
         discount += current_reading_credits * discount_per_reading_credit
+
         return (
             round(price - discount if price - discount > 0.0 else 0.0, 2),
             reading_credits,
@@ -70,13 +78,11 @@ class Invoice:
         # validate card information
         if not self._card_is_present_and_valid(card):
             raise ValueError("Payment information is not set or not valid")
+
         fee, reading_credits = self.calculate_fee(self.customer)
-        is_paid: bool = self._pay_with_credit_card(card, fee)
+        is_paid: bool = card.pay(fee)
         if is_paid:
-            self.is_closed = True
-            LibraryRepository.update_invoice(self)
-            self.customer.reading_credits = reading_credits
-            LibraryRepository.update_user(self.customer)
+            self._persist_invoice_transaction(reading_credits)
 
         return is_paid
 
@@ -94,34 +100,32 @@ class Invoice:
             or password != PAYPAL_DATA_BASE.get(email, None)
         ):
             raise ValueError("Payment information is not set or not valid")
+
+        # TODO Extract the method to avoid redundancy
         fee, reading_credits = self.calculate_fee(self.customer)
         is_paid: bool = self._pay_with_paypal(email, password, fee)
         if is_paid:
-            self.is_closed = True
-            LibraryRepository.update_invoice(self)
-            self.customer.reading_credits = reading_credits
-            LibraryRepository.update_user(self.customer)
+           self._persist_invoice_transaction(reading_credits)
 
         return is_paid
 
-    def _pay_with_paypal(self, email: str, password: str, fee: float) -> bool:
-        if (
-            email is None
-            or password is None
-            or password != PAYPAL_DATA_BASE.get(email, None)
-        ):
-            return False
-        if PAYPAL_ACCOUNT_BALANCE[email] >= fee:
-            PAYPAL_ACCOUNT_BALANCE[email] = PAYPAL_ACCOUNT_BALANCE[email] - fee
-            print(f"Paying {fee} using PayPal")
-        return True
+    def _persist_invoice_transaction(self, reading_credits: int) -> None:
+        self.is_closed = True
+        LibraryRepository.update_invoice(self)
+        self.customer.reading_credits = reading_credits
+        LibraryRepository.update_user(self.customer)
 
-    def _pay_with_credit_card(self, card: CreditCard, fee: float) -> bool:
-        if not self._card_is_present_and_valid(card):
-            return False
-        remaining_amount: float = card.amount - fee
-        if remaining_amount < 0:
-            print(f"Card limit reached - Balance: {remaining_amount}")
-            return False
-        card.amount = remaining_amount
-        return True
+        return None
+
+
+def _pay_with_paypal(self, email: str, password: str, fee: float) -> bool:
+    if (
+        email is None
+        or password is None
+        or password != PAYPAL_DATA_BASE.get(email, None)
+    ):
+        return False
+    if PAYPAL_ACCOUNT_BALANCE[email] >= fee:
+        PAYPAL_ACCOUNT_BALANCE[email] = PAYPAL_ACCOUNT_BALANCE[email] - fee
+        print(f"Paying {fee} using PayPal")
+    return True
