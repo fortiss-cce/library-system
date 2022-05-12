@@ -3,6 +3,7 @@ import json
 from library.model.author import Author
 from library.model.genre import Genre
 from library.model.publisher import Publisher
+from library.model.borrowing import Borrowing
 import xml.etree.ElementTree as et
 
 from library.persistence.storage import LibraryRepository
@@ -20,7 +21,7 @@ class Book:
     existing_items: int
     borrowed_items: int
 
-    _book_type: str
+    book_type: str
     duration: int = 0
 
     def __init__(self, title, authors, publisher, pub_date, genres, pages, isbn, type, duration=0, existing_items=1, borrowed_items=0):
@@ -31,27 +32,10 @@ class Book:
         self.genres = genres
         self.pages = pages
         self.isbn = isbn
-        self._book_type = type
+        self.book_type = type
         self.duration = duration
         self.existing_items = existing_items
         self.borrowed_items = borrowed_items
-
-    @classmethod
-    def from_borrowed_book(cls, borrowed_book: "BorrowedBook") -> "Book":
-        book = Book(
-            borrowed_book.title,
-            borrowed_book.authors,
-            borrowed_book.publisher,
-            borrowed_book.publication_date,
-            borrowed_book.genres,
-            borrowed_book.pages,
-            borrowed_book.isbn,
-            borrowed_book._book_type,
-            borrowed_book.duration,
-            borrowed_book.existing_items,
-            borrowed_book.borrowed_items,
-        )
-        return book
 
     def can_borrow(self) -> bool:
         if self._book_type == "Paper":
@@ -73,6 +57,7 @@ class Book:
         else:
             raise AttributeError("No such book type...")
 
+
     def get_weekly_fee(self) -> int:
         if self._book_type == "Paper":
             return 5
@@ -83,17 +68,6 @@ class Book:
         else:
             raise AttributeError("No such book type...")
 
-    def borrow_book(self) -> "BorrowedBook":
-        if self.can_borrow():
-            if self._book_type == "Paper":
-                self.borrowed_items += 1
-            LibraryRepository.update_book(self)
-            borrowed_book = BorrowedBook.from_book(self)
-            borrowed_book.due_date = datetime.now() + timedelta(days=7)
-            borrowed_book.current_fee = self.get_weekly_fee()
-            return borrowed_book
-        raise ValueError("Book cannot be borrowed")
-
     def __eq__(self, other):
         """Overrides the default implementation"""
         if isinstance(other, Book) or isinstance(other, BorrowedBook):
@@ -103,7 +77,7 @@ class Book:
     def __str__(self):
         return BookSerializer().serialize(self, "JSON")
 
-
+'''
 class BorrowedBook(Book):
     due_date: datetime
     current_fee: float
@@ -142,7 +116,7 @@ class BorrowedBook(Book):
         if isinstance(other, Book) or isinstance(other, BorrowedBook):
             return self.isbn == other.isbn and self._book_type == other._book_type
         return NotImplemented
-
+'''
 
 class BookSerializer:
     def serialize(self, book: Book, format: str):

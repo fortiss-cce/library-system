@@ -2,12 +2,16 @@ from typing import Optional
 from library.model.book import Book, BorrowedBook
 from library.model.genre import Genre
 from library.persistence.storage import LibraryRepository
+from library.model.borrowing import Borrowing
+
 
 
 class User:
 
     email: str
-    borrowed_books: list[BorrowedBook]
+    #borrowed_books: list[BorrowedBook]
+    borrowings: list[Borrowing]
+
     read_books: list[Book]
     invoices: list
     firstname: str
@@ -18,6 +22,8 @@ class User:
     landline_number: str
     mobile_number2: str
     reading_credits: int = 0
+
+
 
     def __init__(self, email, firstname, lastname, mob1, mob2, area_code, landline, country_code):
         self.email = email
@@ -32,20 +38,22 @@ class User:
         self.read_books = []
         self.invoices = []
 
-    def borrow_book(self, book: Book) -> Optional[BorrowedBook]:
-        try:
-            if book.can_borrow():
-                borrowed_book = book.borrow_book()
-                self.borrowed_books.append(borrowed_book)
-                LibraryRepository.update_user(self)
-                return borrowed_book
-            return None
-        except AttributeError:
-            return None
-        except ValueError:
-            return None
+    def borrow_book(self, book: Book) -> Borrowing:
+        borrowing = Borrowing(self, book)
+        borrowing.open_borrowing()
+        self.borrowings.append(borrowing)
+        return borrowing
 
-    def return_books(self, books: list[BorrowedBook]):
+    def return_books(self, borrowings: list[Borrowing]):
+        for borrowing in borrowings:
+            borrowing.close_borrowing()
+
+            book: Book = borrowing.get_book()
+            #Now do the invoice part
+
+
+
+        '''
         from library.payment.invoice import Invoice
 
         invoice: Invoice = Invoice(self)
@@ -63,6 +71,7 @@ class User:
             return invoice
         else:
             return None
+        '''
 
     def get_reading_credits(self, books: list[Book]) -> int:
         reading_credits: int = 0
