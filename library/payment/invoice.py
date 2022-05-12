@@ -15,16 +15,15 @@ class Invoice:
     customer: User
     is_closed: bool = False
 
-    def __init__(self, user: User):
+    def __init__(self, user: User, books: list[BorrowedBook]):
         self.id = str(uuid.uuid4())
         self.customer = user
-        self.books = []
-
-    def add_book(self, book: BorrowedBook):
-        self.books.append(book)
+        self.books = books
 
     def __str__(self):
-        invoice_books = "\n".join(str(book) + ": " + str(book.current_fee) for book in self.books)
+        invoice_books = "\n".join(
+            str(book) + ": " + str(book.current_fee) for book in self.books
+        )
         return f"""-- Invoice (id: {self.id}) --
             This is the invoice for customer '{self.customer.firstname} {self.customer.lastname}' ({self.customer.email})
             Returned books: {len(self.books)}
@@ -37,14 +36,18 @@ class Invoice:
             Gained reading credits for your next purchase: {self.calculate_fee(self.customer)[1]}
             The invoice is {'' if self.is_closed else 'not'} paid."""
 
+    @staticmethod
+    def get_reading_credits(books: list[Book]) -> int:
+        return sum([book.get_reading_credits() for book in books])
+
     def calculate_fee(self, user: User) -> tuple[float, int]:
         price_per_book: float = 3.55
         min_books_for_discount: int = 3
         discount_per_book: float = 0.5
         discount_per_reading_credit: float = 0.5
         current_reading_credits = user.reading_credits
-        reading_credits: int = user.get_reading_credits(
-            [Book.from_borrowed_book(book) for book in self.books]
+        reading_credits: int = Invoice.get_reading_credits(
+            [book.get_book() for book in self.books]
         )
         price: float = len(self.books) * price_per_book
         for book in self.books:
