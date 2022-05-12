@@ -4,6 +4,7 @@ from library.model.author import Author
 from library.model.genre import Genre
 from library.model.publisher import Publisher
 import xml.etree.ElementTree as et
+from copy import deepcopy
 
 from library.persistence.storage import LibraryRepository
 
@@ -23,7 +24,20 @@ class Book:
     _book_type: str
     duration: int = 0
 
-    def __init__(self, title, authors, publisher, pub_date, genres, pages, isbn, type, duration=0, existing_items=1, borrowed_items=0):
+    def __init__(
+        self,
+        title,
+        authors,
+        publisher,
+        pub_date,
+        genres,
+        pages,
+        isbn,
+        type,
+        duration=0,
+        existing_items=1,
+        borrowed_items=0,
+    ):
         self.title = title
         self.authors = authors
         self.publisher = publisher
@@ -38,19 +52,7 @@ class Book:
 
     @classmethod
     def from_borrowed_book(cls, borrowed_book: "BorrowedBook") -> "Book":
-        book = Book(
-            borrowed_book.title,
-            borrowed_book.authors,
-            borrowed_book.publisher,
-            borrowed_book.publication_date,
-            borrowed_book.genres,
-            borrowed_book.pages,
-            borrowed_book.isbn,
-            borrowed_book._book_type,
-            borrowed_book.duration,
-            borrowed_book.existing_items,
-            borrowed_book.borrowed_items,
-        )
+        book = borrowed_book.borrowed_book
         return book
 
     def can_borrow(self) -> bool:
@@ -88,11 +90,22 @@ class Book:
             if self._book_type == "Paper":
                 self.borrowed_items += 1
             LibraryRepository.update_book(self)
-            borrowed_book = BorrowedBook.from_book(self)
-            borrowed_book.due_date = datetime.now() + timedelta(days=7)
-            borrowed_book.current_fee = self.get_weekly_fee()
+            borrowed_book = BorrowedBook(self)
             return borrowed_book
         raise ValueError("Book cannot be borrowed")
+
+    def get_reading_credits(self) -> int:
+        reading_credits = 0
+        for genre in self.genres:
+            if genre == Genre.HISTORY:
+                reading_credits += 1
+            elif genre == Genre.MEDICINE:
+                reading_credits += 2
+            elif genre == Genre.SOCIOLOGY:
+                reading_credits += 2
+            else:
+                reading_credits += 0
+        return reading_credits
 
     def __eq__(self, other):
         """Overrides the default implementation"""
@@ -104,43 +117,36 @@ class Book:
         return BookSerializer().serialize(self, "JSON")
 
 
-class BorrowedBook(Book):
+class BorrowedBook:
     due_date: datetime
     current_fee: float
 
-    @classmethod
-    def from_book(cls, book: Book) -> "BorrowedBook":
-        borrowed_book = BorrowedBook(
-            book.title,
-            book.authors,
-            book.publisher,
-            book.publication_date,
-            book.genres,
-            book.pages,
-            book.isbn,
-            book._book_type,
-            book.duration,
-            book.existing_items,
-            book.borrowed_items,
-        )
-        return borrowed_book
+    def __init__(self, book: Book) -> "BorrowedBook":
+        self.borrowed_book = book
+        self.due_date = datetime.now() + timedelta(days=7)
+        self.current_fee = self.borrowed_book.get_weekly_fee()
 
     def renew_rental(self) -> "BorrowedBook":
-        self.due_date += timedelta(days=7)
-        self.current_fee += self.get_weekly_fee()
+        self.borrowed_book.due_date += timedelta(days=7)
+        self.borrowed_book.current_fee += self.borrowed_book.get_weekly_fee()
         return self
 
-    def return_book(self) -> Book:
-        if self._book_type == "Paper":
-            self.borrowed_items -= 1
-        book = Book.from_borrowed_book(self)
-        LibraryRepository.update_book(book)
-        return book
+    def return_book(self) -> None:
+        if self.borrowed_book._book_type == "Paper":
+            self.borrowed_book.borrowed_items -= 1
+
+    def get_book(self) -> Book:
+        return deepcopy(self.borrowed_book)
 
     def __eq__(self, other):
         """Overrides the default implementation"""
-        if isinstance(other, Book) or isinstance(other, BorrowedBook):
-            return self.isbn == other.isbn and self._book_type == other._book_type
+        if isinstance(other, Book):
+            return self.borrowed_book == other
+        elif isinstance(other, BorrowedBook):
+            return (
+                self.borrowed_book.isbn == other.borrowed_book.isbn
+                and self.borrowed_book._book_type == other.borrowed_book._book_type
+            )
         return NotImplemented
 
 

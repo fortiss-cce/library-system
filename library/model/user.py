@@ -2,6 +2,7 @@ from typing import Optional
 from library.model.book import Book, BorrowedBook
 from library.model.genre import Genre
 from library.persistence.storage import LibraryRepository
+from library.payment.invoice import Invoice
 
 
 class User:
@@ -19,7 +20,9 @@ class User:
     mobile_number2: str
     reading_credits: int = 0
 
-    def __init__(self, email, firstname, lastname, mob1, mob2, area_code, landline, country_code):
+    def __init__(
+        self, email, firstname, lastname, mob1, mob2, area_code, landline, country_code
+    ):
         self.email = email
         self.firstname = firstname
         self.lastname = lastname
@@ -45,18 +48,10 @@ class User:
         except ValueError:
             return None
 
-    def return_books(self, books: list[BorrowedBook]):
-        from library.payment.invoice import Invoice
+    def _create_invoice(self, books: list[BorrowedBook]):
+        invoice: Invoice = Invoice(self, books)
 
-        invoice: Invoice = Invoice(self)
-        for borrowed_book in books:
-            if borrowed_book in self.borrowed_books:
-                invoice.add_book(borrowed_book)
-                self.borrowed_books.remove(borrowed_book)
-                book = borrowed_book.return_book()
-                self.read_books.append(book)
-                LibraryRepository.update_book(book)
-        if len(invoice.books) > 0:
+        if len(books) > 0:
             LibraryRepository.create_invoice(invoice)
             self.invoices.append(invoice)
             LibraryRepository.update_user(self)
@@ -64,19 +59,18 @@ class User:
         else:
             return None
 
-    def get_reading_credits(self, books: list[Book]) -> int:
-        reading_credits: int = 0
-        for book in books:
-            for genre in book.genres:
-                if genre == Genre.HISTORY:
-                    reading_credits += 1
-                elif genre == Genre.MEDICINE:
-                    reading_credits += 2
-                elif genre == Genre.SOCIOLOGY:
-                    reading_credits += 2
-                else:
-                    reading_credits += 0
-        return reading_credits
+    def return_books(self, books: list[BorrowedBook]) -> Invoice:
+        return_books = [
+            borrowed_book
+            for borrowed_book in books
+            if borrowed_book in self.borrowed_books
+        ]
+        for borrowed_book in return_books:
+            self.borrowed_books.remove(borrowed_book)
+            borrowed_book.return_book()
+            self.read_books.append(borrowed_book.borrowed_book)
+            LibraryRepository.update_book(borrowed_book.borrowed_book)
+        return self._create_invoice(return_books)
 
     def __eq__(self, other):
         """Overrides the default implementation"""
