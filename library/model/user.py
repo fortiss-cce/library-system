@@ -1,82 +1,85 @@
-from typing import Optional
+from typing import NamedTuple
 from library.model.book import Book, BorrowedBook
-from library.model.genre import Genre
+from library.model.reading_creadits import reading_credits
+from library.payment.invoice import Invoice
 from library.persistence.storage import LibraryRepository
+
+
+class PersonalData(NamedTuple):
+    email: str
+    firstname: str
+    lastname: str
+    mobile_number1: str = ''  # Including country code
+    mobile_number2: str = ''  # Including country code
+    landline_number: str = ''  # Including country code and area code
+
+    def __str__(self):
+        """Prints name, email and (if available), the full landline number"""
+        if len(self.landline_number) > 0:
+            return f'{self.firstname}, {self.lastname} ({self.email}): {self.landline_number}'
+        else:
+            return f'{self.firstname}, {self.lastname} ({self.email})'
 
 
 class User:
 
-    email: str
+    personal_data: PersonalData
     borrowed_books: list[BorrowedBook]
     read_books: list[Book]
-    invoices: list
-    firstname: str
-    lastname: str
-    mobile_number1: str
-    country_calling_code: str
-    area_code: str
-    landline_number: str
-    mobile_number2: str
-    reading_credits: int = 0
+    invoices: list[Invoice]
+    reading_credits: int
 
-    def __init__(self, email, firstname, lastname, mob1, mob2, area_code, landline, country_code):
-        self.email = email
-        self.firstname = firstname
-        self.lastname = lastname
-        self.mobile_number1 = mob1
-        self.mobile_number2 = mob2
-        self.area_code = area_code
-        self.landline_number = landline
-        self.country_calling_code = country_code
+    def __init__(self, personal_data: PersonalData):
+        self.personal_data = personal_data
         self.borrowed_books = []
         self.read_books = []
         self.invoices = []
 
-    def borrow_book(self, book: Book) -> Optional[BorrowedBook]:
-        try:
-            if book.can_borrow():
-                borrowed_book = book.borrow_book()
-                self.borrowed_books.append(borrowed_book)
-                LibraryRepository.update_user(self)
-                return borrowed_book
-            return None
-        except AttributeError:
-            return None
-        except ValueError:
-            return None
+    def borrow_book(self, book: Book) -> None:
+        if not book.can_borrow():
+            raise ValueError("Book is not available")
+        borrowed_book = book.borrow_book()
+        self.borrowed_books.append(borrowed_book)
+        LibraryRepository.update_user(self)
 
-    def return_books(self, books: list[BorrowedBook]):
-        from library.payment.invoice import Invoice
-
+    def return_books(self, books: list[BorrowedBook]) -> Invoice:
+        if not all(book in self.borrowed_books for book in books):
+            raise ValueError("At least one book from the list is not borrowed and so cannot be returned")
         invoice: Invoice = Invoice(self)
-        for borrowed_book in books:
-            if borrowed_book in self.borrowed_books:
-                invoice.add_book(borrowed_book)
-                self.borrowed_books.remove(borrowed_book)
-                book = borrowed_book.return_book()
-                self.read_books.append(book)
-                LibraryRepository.update_book(book)
-        if len(invoice.books) > 0:
-            LibraryRepository.create_invoice(invoice)
-            self.invoices.append(invoice)
-            LibraryRepository.update_user(self)
+        if len(books) == 0:
             return invoice
-        else:
-            return None
 
-    def get_reading_credits(self, books: list[Book]) -> int:
-        reading_credits: int = 0
-        for book in books:
-            for genre in book.genres:
-                if genre == Genre.HISTORY:
-                    reading_credits += 1
-                elif genre == Genre.MEDICINE:
-                    reading_credits += 2
-                elif genre == Genre.SOCIOLOGY:
-                    reading_credits += 2
-                else:
-                    reading_credits += 0
-        return reading_credits
+        for borrowed_book in books:
+            invoice.add_book(borrowed_book)
+            self.borrowed_books.remove(borrowed_book)
+            book = borrowed_book.return_book()
+            self.read_books.append(book)
+            LibraryRepository.update_book(book)
+        LibraryRepository.create_invoice(invoice)
+        self.invoices.append(invoice)
+        LibraryRepository.update_user(self)
+        return invoice
+
+    @property
+    def email(self) -> str:
+        return self.personal_data.email
+
+    @property
+    def firstname(self) -> str:
+        return self.personal_data.firstname
+
+    @property
+    def lastname(self) -> str:
+        return self.personal_data.lastname
+
+    @property
+    def reading_credits(self) -> int:
+        """
+        Changed functionality of that method (was get_reading_credits):
+        -> now it returns the number of reading credits for the users read books
+        -> previously, it returned the reading credits for a list of given books, which was not dependent on the user
+        """
+        return sum(reading_credits[genre] for book in self.read_books for genre in book.genres)
 
     def __eq__(self, other):
         """Overrides the default implementation"""
@@ -87,7 +90,7 @@ class User:
     def __str__(self):
         borrowed_books = "\n".join(str(book) for book in self.borrowed_books)
         read_books = "\n".join(str(book) for book in self.read_books)
-        return f"""{self.firstname}, {self.lastname} ({self.email}): {self.country_calling_code}{self.area_code}/{self.landline_number}
+        return f"""{self.personal_data}
             _______BORROWED BOOKS________
             {borrowed_books}
             _______READ BOOKS________
