@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
 users: list[User] = []
 books: list[Book] = []
+books_borrowed: list[Book] = []
 authors: list[Author] = []
 publishers: list[Publisher] = []
 invoices: list[Invoice] = []
@@ -60,6 +61,17 @@ class LibraryRepository:
         if index >= 0:
             books.remove(book)
 
+    @staticmethod
+    def borrow_book(book: Book):
+        books.remove(book)
+        books_borrowed.append(book)
+
+    @staticmethod
+    def return_book(book: Book):
+        books_borrowed.remove(book)
+        books.append(book)
+
+        
     # users
     @staticmethod
     def create_user(user: User):
