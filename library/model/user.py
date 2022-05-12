@@ -1,6 +1,6 @@
 from typing import NamedTuple
 from library.model.book import Book, BookBorrowed
-from library.model.reading_creadits import reading_credits
+from library.model.reading_creadits import ReadingCreditsPerGenre
 from library.payment.invoice import Invoice
 from library.persistence.storage import LibraryRepository
 
@@ -79,7 +79,7 @@ class User:
         -> now it returns the number of reading credits for the users read books
         -> previously, it returned the reading credits for a list of given books, which was not dependent on the user
         """
-        return sum(reading_credits[genre] for book in self.read_books for genre in book.genres)
+        return sum(ReadingCreditsPerGenre[genre] for book in self.read_books for genre in book.genres)
 
     def __eq__(self, other):
         """Overrides the default implementation"""

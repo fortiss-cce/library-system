@@ -94,4 +94,12 @@ class BookBorrowed:
     def extend_rental(self, weeks: int = 1):
         assert weeks >= 0
         self.due_date += timedelta(weeks=weeks)
-        self.current_fee += self.book.get_weekly_fee() * weeks
+        self.current_fee += self.weekly_fee * weeks
+
+    @property
+    def weekly_fee(self) -> float:
+        return self.book.get_weekly_fee()
+
+    @property
+    def genres(self) -> list[Genre]:
+        return self.book.genres

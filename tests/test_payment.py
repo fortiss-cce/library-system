@@ -165,7 +165,7 @@ def credit_card_low_limit(card: CreditCard):
 @when("the limit of the card is higher than the fee")
 def credit_card_high_limit(user: User, card: CreditCard, invoice: Invoice):
     user.reading_credits = 0
-    card.amount = invoice.calculate_fee(user)[0] + 1.0
+    card.amount = invoice.calculate_fee(user) + 1.0
 
 
 @then("the card limit should not change")
@@ -181,7 +181,7 @@ def credit_card_changed(card: CreditCard):
 @then("the account balance should be updated")
 def account_balance_changed(paypal, invoice: Invoice, user: User):
     user.reading_credits = 0
-    assert PAYPAL_ACCOUNT_BALANCE[paypal[0]] == 100.0 - invoice.calculate_fee(user)[0]
+    assert PAYPAL_ACCOUNT_BALANCE[paypal[0]] == 100.0 - invoice.calculate_fee(user)
 
 
 @then("the invoice should be updated in storage")
