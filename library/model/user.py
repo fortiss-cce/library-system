@@ -35,18 +35,19 @@ class User:
         self.read_books = []
         self.invoices = []
 
-    def borrow_book(self, book: Book) -> None:
-        if not book.can_borrow():
-            raise ValueError("Book is not available")
-        borrowed_book = book.borrow_book()
-        self.borrowed_books.append(borrowed_book)
-        LibraryRepository.update_user(self)
+    def borrow_book(self, books: list[Book]) -> None:
+        for book in books:
+            if not book.can_borrow():
+                raise ValueError("Book is not available")
+            borrowed_book = book.borrow_book()
+            self.borrowed_books.append(borrowed_book)
+            LibraryRepository.borrow_book(book)
 
-    def return_books(self, books: list[BookBorrowed]) -> Invoice:
+    def return_book(self, books: list[BookBorrowed]) -> Invoice:
         if not all(book in self.borrowed_books for book in books):
             raise ValueError("At least one book from the list is not borrowed and so cannot be returned")
         invoice: Invoice = Invoice(self)
-        if len(books) == 0:
+        if not books:
             return invoice
 
         for borrowed_book in books:
@@ -54,7 +55,7 @@ class User:
             self.borrowed_books.remove(borrowed_book)
             book = borrowed_book.return_book()
             self.read_books.append(book)
-            LibraryRepository.update_book(book)
+            LibraryRepository.return_book(book)
         LibraryRepository.create_invoice(invoice)
         self.invoices.append(invoice)
         LibraryRepository.update_user(self)

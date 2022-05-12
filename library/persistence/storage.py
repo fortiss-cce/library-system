@@ -50,12 +50,6 @@ class LibraryRepository:
         return None
 
     @staticmethod
-    def update_book(book: Book):
-        index = books.index(book)
-        if index >= 0:
-            books[index] = book
-
-    @staticmethod
     def delete_book(book: Book):
         index = books.index(book)
         if index >= 0:
@@ -85,12 +79,6 @@ class LibraryRepository:
         return None
 
     @staticmethod
-    def update_user(user: User):
-        index = users.index(user)
-        if index >= 0:
-            users[index] = user
-
-    @staticmethod
     def delete_user(user: User):
         index = users.index(user)
         if index >= 0:
@@ -107,12 +95,6 @@ class LibraryRepository:
         if len(found_authors) > 0:
             return found_authors[0]
         return None
-
-    @staticmethod
-    def update_author(author: Author):
-        index = authors.index(author)
-        if index >= 0:
-            authors[index] = author
 
     @staticmethod
     def delete_author(author: Author):
@@ -133,12 +115,6 @@ class LibraryRepository:
         return None
 
     @staticmethod
-    def update_publisher(publisher: Publisher):
-        index = publishers.index(publisher)
-        if index >= 0:
-            publishers[index] = publisher
-
-    @staticmethod
     def delete_publisher(publisher: Publisher):
         index = publishers.index(publisher)
         if index >= 0:
@@ -155,12 +131,6 @@ class LibraryRepository:
         if len(found_invoices) > 0:
             return found_invoices[0]
         return None
-
-    @staticmethod
-    def update_invoice(invoice: Invoice):
-        index = invoices.index(invoice)
-        if index >= 0:
-            invoices[index] = invoice
 
     @staticmethod
     def delete_invoice(invoice: Invoice):
