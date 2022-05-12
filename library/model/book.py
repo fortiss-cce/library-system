@@ -4,6 +4,7 @@ from library.model.author import Author
 from library.model.genre import Genre
 from library.model.publisher import Publisher
 import xml.etree.ElementTree as et
+from abc import abstractmethod
 
 from library.persistence.storage import LibraryRepository
 
@@ -17,12 +18,6 @@ class Book:
     pages: int
     isbn: str
 
-    existing_items: int
-    borrowed_items: int
-
-    _book_type: str
-    duration: int = 0
-
     def __init__(self, title, authors, publisher, pub_date, genres, pages, isbn, type, duration=0, existing_items=1, borrowed_items=0):
         self.title = title
         self.authors = authors
@@ -31,62 +26,33 @@ class Book:
         self.genres = genres
         self.pages = pages
         self.isbn = isbn
-        self._book_type = type
-        self.duration = duration
-        self.existing_items = existing_items
-        self.borrowed_items = borrowed_items
 
     @classmethod
     def from_borrowed_book(cls, borrowed_book: "BorrowedBook") -> "Book":
         book = Book(
-            borrowed_book.title,
-            borrowed_book.authors,
-            borrowed_book.publisher,
-            borrowed_book.publication_date,
-            borrowed_book.genres,
-            borrowed_book.pages,
-            borrowed_book.isbn,
-            borrowed_book._book_type,
-            borrowed_book.duration,
-            borrowed_book.existing_items,
-            borrowed_book.borrowed_items,
+            borrowed_book.book.title,
+            borrowed_book.book.authors,
+            borrowed_book.book.publisher,
+            borrowed_book.book.publication_date,
+            borrowed_book.book.genres,
+            borrowed_book.book.isbn
         )
         return book
 
+    @abstractmethod
     def can_borrow(self) -> bool:
-        if self._book_type == "Paper":
-            return self.existing_items - self.borrowed_items > 0
-        elif self._book_type == "Electronic":
-            return True
-        elif self._book_type == "Audio":
-            return True
-        else:
-            raise AttributeError("No such book type...")
+        raise NotImplementedError("Unspecified book type")
 
+    @abstractmethod
     def get_approximate_duration(self) -> int:
-        if self._book_type == "Paper":
-            return self.pages * 3 * 60
-        elif self._book_type == "Electronic":
-            return self.pages * 5 * 60
-        elif self._book_type == "Audio":
-            return self.duration
-        else:
-            raise AttributeError("No such book type...")
+        raise NotImplementedError("Unspecified book type")
 
+    @abstractmethod
     def get_weekly_fee(self) -> int:
-        if self._book_type == "Paper":
-            return 5
-        elif self._book_type == "Electronic":
-            return 2
-        elif self._book_type == "Audio":
-            return 2
-        else:
-            raise AttributeError("No such book type...")
+        raise NotImplementedError("Unspecified book type")
 
     def borrow_book(self) -> "BorrowedBook":
         if self.can_borrow():
-            if self._book_type == "Paper":
-                self.borrowed_items += 1
             LibraryRepository.update_book(self)
             borrowed_book = BorrowedBook.from_book(self)
             borrowed_book.due_date = datetime.now() + timedelta(days=7)
@@ -96,8 +62,10 @@ class Book:
 
     def __eq__(self, other):
         """Overrides the default implementation"""
-        if isinstance(other, Book) or isinstance(other, BorrowedBook):
-            return self.isbn == other.isbn and self._book_type == other._book_type
+        if isinstance(other, Book):
+            return self.isbn == other.isbn and isinstance(self, type(other))
+        elif isinstance(other, BorrowedBook):
+            return self.isbn == other.book.isbn and isinstance(self, type(other.book))
         return NotImplemented
 
     def __str__(self):
@@ -127,7 +95,7 @@ class BorrowedBook(Book):
 
     def renew_rental(self) -> "BorrowedBook":
         self.due_date += timedelta(days=7)
-        self.current_fee += self.get_weekly_fee()
+        self.current_fee += self.book.get_weekly_fee()
         return self
 
     def return_book(self) -> Book:
@@ -168,3 +136,68 @@ class BookSerializer:
             return et.tostring(book_info, encoding="Unicode")
         else:
             raise ValueError(format)
+
+
+class ElectronicBook(Book):
+    pages: int
+
+    def __init__(self, title, authors, publisher, pub_date, genres, pages, isbn):
+        super(ElectronicBook, self).__init__(title, authors, publisher, pub_date, genres, isbn)
+        self.pages = pages
+
+    def can_borrow(self) -> bool:
+        return True
+
+    def get_approximate_duration(self) -> int:
+        return self.pages * 5 * 60
+
+    def get_weekly_fee(self) -> int:
+        return 2
+
+
+class AudioBook(Book):
+    duration: int
+
+    def __init__(self, title, authors, publisher, pub_date, genres, isbn, duration=0):
+        super(AudioBook, self).__init__(title, authors, publisher, pub_date, genres, isbn)
+        self.duration = duration
+
+    def can_borrow(self) -> bool:
+        return True
+
+    def get_approximate_duration(self) -> int:
+        return self.duration
+
+    def get_weekly_fee(self) -> int:
+        return 2
+
+
+class PaperBook(Book):
+
+    existing_items: int
+    borrowed_items: int
+    pages: int
+
+    def __init__(self, title, authors, publisher, pub_date, genres, pages, isbn, existing_items=1, borrowed_items=0):
+        super().__init__(title, authors, publisher, pub_date, genres, isbn)
+        self.pages = pages
+        self.existing_items = existing_items
+        self.borrowed_items = borrowed_items
+
+    def can_borrow(self) -> bool:
+        return self.existing_items - self.borrowed_items > 0
+
+    def get_approximate_duration(self) -> int:
+        return self.pages * 3 * 60
+
+    def get_weekly_fee(self) -> int:
+        return 5
+
+    def borrow_book(self) -> "BorrowedBook":
+        if self.can_borrow():
+            self.borrowed_items += 1
+        return super().borrow_book()
+
+#    def return_book(self) -> Book:
+#        self.borrowed_items -= 1
+#        return super().return_book()
