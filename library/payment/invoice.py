@@ -23,20 +23,6 @@ class Invoice:
     def add_book(self, book: BorrowedBook):
         self.books.append(book)
 
-    def __str__(self):
-        invoice_books = "\n".join(str(book) + ": " + str(book.current_fee) for book in self.books)
-        return f"""-- Invoice (id: {self.id}) --
-            This is the invoice for customer '{self.customer.firstname} {self.customer.lastname}' ({self.customer.email})
-            Returned books: {len(self.books)}
-
-            {invoice_books}
-
-            -----------------------------------------
-
-            Total amount after discount: {self.calculate_fee(self.customer)[0]} €
-            Gained reading credits for your next purchase: {self.calculate_fee(self.customer)[1]}
-            The invoice is {'' if self.is_closed else 'not'} paid."""
-
     def calculate_fee(self, user: User) -> tuple[float, int]:
         price_per_book: float = 3.55
         min_books_for_discount: int = 3
@@ -125,3 +111,17 @@ class Invoice:
             return False
         card.amount = remaining_amount
         return True
+
+    def __str__(self):
+        invoice_books = "\n".join(str(book) + ": " + str(book.current_fee) for book in self.books)
+        return f"""-- Invoice (id: {self.id}) --
+            This is the invoice for customer '{self.customer.firstname} {self.customer.lastname}' ({self.customer.email})
+            Returned books: {len(self.books)}
+
+            {invoice_books}
+
+            -----------------------------------------
+
+            Total amount after discount: {self.calculate_fee(self.customer)[0]} €
+            Gained reading credits for your next purchase: {self.calculate_fee(self.customer)[1]}
+            The invoice is {'' if self.is_closed else 'not'} paid."""
