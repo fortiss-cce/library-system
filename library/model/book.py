@@ -9,6 +9,7 @@ from library.persistence.storage import LibraryRepository
 
 
 class Book:
+
     title: str
     authors: list[Author]
     publisher: Publisher
@@ -16,14 +17,13 @@ class Book:
     genres: list[Genre]
     pages: int
     isbn: str
-
     existing_items: int
     borrowed_items: int
-
     _book_type: str
     duration: int = 0
 
-    def __init__(self, title, authors, publisher, pub_date, genres, pages, isbn, type, duration=0, existing_items=1, borrowed_items=0):
+    # Lot of input variables 
+    def __init__(self, title, authors, publisher, pub_date, genres, pages, isbn, book_type, duration=0, existing_items=1, borrowed_items=0):
         self.title = title
         self.authors = authors
         self.publisher = publisher
@@ -31,13 +31,13 @@ class Book:
         self.genres = genres
         self.pages = pages
         self.isbn = isbn
-        self._book_type = type
+        self._book_type = book_type 
         self.duration = duration
         self.existing_items = existing_items
         self.borrowed_items = borrowed_items
 
     @classmethod
-    def from_borrowed_book(cls, borrowed_book: "BorrowedBook") -> "Book":
+    def from_borrowed_book(cls, borrowed_book: "BorrowedBook") -> "Book": # What does this function do? 
         book = Book(
             borrowed_book.title,
             borrowed_book.authors,
@@ -55,23 +55,24 @@ class Book:
 
     def can_borrow(self) -> bool:
         if self._book_type == "Paper":
-            return self.existing_items - self.borrowed_items > 0
-        elif self._book_type == "Electronic":
-            return True
-        elif self._book_type == "Audio":
+            return (self.existing_items - self.borrowed_items) > 0
+        elif self._book_type in ["Electronic", 'Audio']:
             return True
         else:
             raise AttributeError("No such book type...")
 
     def get_approximate_duration(self) -> int:
-        if self._book_type == "Paper":
-            return self.pages * 3 * 60
-        elif self._book_type == "Electronic":
-            return self.pages * 5 * 60
-        elif self._book_type == "Audio":
-            return self.duration
-        else:
-            raise AttributeError("No such book type...")
+
+        durations = {'Paper' : 3, 'Electronic' : 5, 'Audio' : None}
+
+        for book_type, duration in durations:
+            if self._book_type == book_type:
+                if duration is None: 
+                    return self.duration
+                else: 
+                    return self.pages * duration * 60 
+            else:
+                raise AttributeError("No such book type...")
 
     def get_weekly_fee(self) -> int:
         if self._book_type == "Paper":
