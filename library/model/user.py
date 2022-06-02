@@ -3,6 +3,10 @@ from library.model.book import Book, BorrowedBook
 from library.model.genre import Genre
 from library.persistence.storage import LibraryRepository
 
+credits_for_history = 1
+credits_for_medicine = 2
+credits_for_sociology = 2
+
 
 class User:
 
@@ -19,7 +23,7 @@ class User:
     mobile_number2: str
     reading_credits: int = 0
 
-    def __init__(self, email, firstname, lastname, mob1, mob2, area_code, landline, country_code):
+    def __init__(self, email, firstname, lastname, mob1, area_code, landline, country_code, mob2=None):
         self.email = email
         self.firstname = firstname
         self.lastname = lastname
@@ -64,16 +68,16 @@ class User:
         else:
             return None
 
-    def get_reading_credits(self, books: list[Book]) -> int:
+    def get_reading_credits(self) -> int:
         reading_credits: int = 0
-        for book in books:
+        for book in self.borrowed_books:
             for genre in book.genres:
                 if genre == Genre.HISTORY:
-                    reading_credits += 1
+                    reading_credits += credits_for_history
                 elif genre == Genre.MEDICINE:
-                    reading_credits += 2
+                    reading_credits += credits_for_medicine
                 elif genre == Genre.SOCIOLOGY:
-                    reading_credits += 2
+                    reading_credits += credits_for_sociology
                 else:
                     reading_credits += 0
         return reading_credits

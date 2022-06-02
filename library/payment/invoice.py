@@ -7,6 +7,11 @@ from library.payment.credit_card import CreditCard
 from library.payment.paypal import PAYPAL_ACCOUNT_BALANCE, PAYPAL_DATA_BASE
 from library.persistence.storage import LibraryRepository
 
+price_per_book: float = 3.55
+min_books_for_discount: int = 3
+discount_per_book: float = 0.5
+discount_per_reading_credit: float = 0.5
+
 
 class Invoice:
 
@@ -37,14 +42,10 @@ class Invoice:
             Gained reading credits for your next purchase: {self.calculate_fee(self.customer)[1]}
             The invoice is {'' if self.is_closed else 'not'} paid."""
 
-    def calculate_fee(self, user: User) -> tuple[float, int]:
-        price_per_book: float = 3.55
-        min_books_for_discount: int = 3
-        discount_per_book: float = 0.5
-        discount_per_reading_credit: float = 0.5
-        current_reading_credits = user.reading_credits
-        reading_credits: int = user.get_reading_credits(
-            [Book.from_borrowed_book(book) for book in self.books]
+    def calculate_fee(self) -> tuple[float, int]:
+        current_reading_credits = self.customer.reading_credits
+        reading_credits: int = self.customer.get_reading_credits(
+            #[Book.from_borrowed_book(book) for book in self.books]
         )
         price: float = len(self.books) * price_per_book
         for book in self.books:
@@ -70,7 +71,7 @@ class Invoice:
         # validate card information
         if not self._card_is_present_and_valid(card):
             raise ValueError("Payment information is not set or not valid")
-        fee, reading_credits = self.calculate_fee(self.customer)
+        fee, reading_credits = self.calculate_fee()
         is_paid: bool = self._pay_with_credit_card(card, fee)
         if is_paid:
             self.is_closed = True
@@ -94,7 +95,7 @@ class Invoice:
             or password != PAYPAL_DATA_BASE.get(email, None)
         ):
             raise ValueError("Payment information is not set or not valid")
-        fee, reading_credits = self.calculate_fee(self.customer)
+        fee, reading_credits = self.calculate_fee()
         is_paid: bool = self._pay_with_paypal(email, password, fee)
         if is_paid:
             self.is_closed = True
