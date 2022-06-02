@@ -1,5 +1,6 @@
 from datetime import datetime
 import uuid
+from library.model.library import BorrowedLibraryBook
 
 from library.model.user import User
 from library.model.book import BorrowedBook, Book
@@ -11,7 +12,7 @@ from library.persistence.storage import LibraryRepository
 class Invoice:
 
     id: str
-    books: list[BorrowedBook]
+    books: list[BorrowedLibraryBook]
     customer: User
     is_closed: bool = False
 
