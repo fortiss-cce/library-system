@@ -3,11 +3,8 @@ from library.model.book import Book, BorrowedBook
 from library.model.genre import Genre
 from library.persistence.storage import LibraryRepository
 
-
 class User:
-
     email: str
-    borrowed_books: list[BorrowedBook]
     read_books: list[Book]
     invoices: list
     firstname: str
@@ -77,21 +74,3 @@ class User:
                 else:
                     reading_credits += 0
         return reading_credits
-
-    def __eq__(self, other):
-        """Overrides the default implementation"""
-        if isinstance(other, User):
-            return self.email == other.email
-        return NotImplemented
-
-    def __str__(self):
-        borrowed_books = "\n".join(str(book) for book in self.borrowed_books)
-        read_books = "\n".join(str(book) for book in self.read_books)
-        return f"""{self.firstname}, {self.lastname} ({self.email}): {self.country_calling_code}{self.area_code}/{self.landline_number}
-            _______BORROWED BOOKS________
-            {borrowed_books}
-            _______READ BOOKS________
-            {read_books}
-
-            Open invoices: {[x.id for x in self.invoices]}
-        """
