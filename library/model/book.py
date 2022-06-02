@@ -1,11 +1,19 @@
+import logging
 from datetime import datetime, timedelta
 import json
 from library.model.author import Author
 from library.model.genre import Genre
 from library.model.publisher import Publisher
 import xml.etree.ElementTree as et
+from enum import Enum
 
 from library.persistence.storage import LibraryRepository
+
+
+class BookType(Enum):
+    PAPER = "Paper"
+    ELECTRONIC = "Electronic"
+    AUDIO = "Audio"
 
 
 class Book:
@@ -23,6 +31,19 @@ class Book:
     _book_type: str
     duration: int = 0
 
+    fee_by_book_type: dict[BookType, int] = {
+        BookType.PAPER: 5,
+        BookType.ELECTRONIC: 2,
+        BookType.AUDIO: 2
+    }
+
+    duration_by_book_type: dict[BookType, int] = {
+        BookType.PAPER: 180,
+        BookType.ELECTRONIC: 300,
+        BookType.AUDIO: 1
+    }
+
+
     def __init__(self, title, authors, publisher, pub_date, genres, pages, isbn, type, duration=0, existing_items=1, borrowed_items=0):
         self.title = title
         self.authors = authors
@@ -35,6 +56,8 @@ class Book:
         self.duration = duration
         self.existing_items = existing_items
         self.borrowed_items = borrowed_items
+        self._fee_by_booktype = BookType
+        self._duration_by_booktype = BookType
 
     @classmethod
     def from_borrowed_book(cls, borrowed_book: "BorrowedBook") -> "Book":
@@ -64,24 +87,35 @@ class Book:
             raise AttributeError("No such book type...")
 
     def get_approximate_duration(self) -> int:
-        if self._book_type == "Paper":
-            return self.pages * 3 * 60
-        elif self._book_type == "Electronic":
-            return self.pages * 5 * 60
-        elif self._book_type == "Audio":
-            return self.duration
-        else:
-            raise AttributeError("No such book type...")
+        try:
+            return self._duration_by_booktype.get(self._book_type, 0)
+        except AttributeError as e:
+            logging.error("No such book type...")
+        return 0
+        #if self._book_type == "Paper":
+        #    return self.pages * 3 * 60
+        #elif self._book_type == "Electronic":
+         #   return self.pages * 5 * 60
+        #elif self._book_type == "Audio":
+         #   return self.duration
+        #else:
+         #   raise AttributeError("No such book type...")
 
     def get_weekly_fee(self) -> int:
-        if self._book_type == "Paper":
-            return 5
-        elif self._book_type == "Electronic":
-            return 2
-        elif self._book_type == "Audio":
-            return 2
-        else:
-            raise AttributeError("No such book type...")
+        try:
+            print(self._book_type, self.fee_by_book_type.get(self._book_type, 0), self.fee_by_book_type)
+            return self.fee_by_book_type.get(self._book_type, 0)
+        except AttributeError as e:
+            logging.error("No such book type...")
+        return 0
+        #if self._book_type == "Paper":
+        #    return 5
+        #elif self._book_type == "Electronic":
+        #    return 2
+        #elif self._book_type == "Audio":
+        #    return 2
+        #else:
+        #    raise AttributeError("No such book type...")
 
     def borrow_book(self) -> "BorrowedBook":
         if self.can_borrow():

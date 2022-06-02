@@ -45,6 +45,18 @@ class User:
         except ValueError:
             return None
 
+
+    def check_invoice_len(self, invoice) -> bool:
+        return True if len(invoice.books) > 0 else False
+
+    def set_invoice(self, invoice):
+
+        LibraryRepository.create_invoice(invoice)
+        self.invoices.append(invoice)
+        LibraryRepository.update_user(self)
+        return invoice
+
+
     def return_books(self, books: list[BorrowedBook]):
         from library.payment.invoice import Invoice
 
@@ -56,11 +68,8 @@ class User:
                 book = borrowed_book.return_book()
                 self.read_books.append(book)
                 LibraryRepository.update_book(book)
-        if len(invoice.books) > 0:
-            LibraryRepository.create_invoice(invoice)
-            self.invoices.append(invoice)
-            LibraryRepository.update_user(self)
-            return invoice
+        if self.check_invoice_len(invoice):
+            return self.set_invoice(invoice)
         else:
             return None
 
