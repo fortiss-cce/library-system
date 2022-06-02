@@ -7,6 +7,12 @@ import xml.etree.ElementTree as et
 
 from library.persistence.storage import LibraryRepository
 
+time_per_page_paper = 3 # in mins
+time_per_page_electronic = 5 # in mins
+weekly_fee_paper = 5
+weekly_fee_electronic = 2
+weekly_fee_audio = 2
+max_borrow_days = 7
 
 class Book:
     title: str
@@ -23,7 +29,8 @@ class Book:
     _book_type: str
     duration: int = 0
 
-    def __init__(self, title, authors, publisher, pub_date, genres, pages, isbn, type, duration=0, existing_items=1, borrowed_items=0):
+    def __init__(self, title, authors, publisher, pub_date, genres, pages, isbn, book_type,
+                 duration=0, existing_items=1, borrowed_items=0):
         self.title = title
         self.authors = authors
         self.publisher = publisher
@@ -31,7 +38,7 @@ class Book:
         self.genres = genres
         self.pages = pages
         self.isbn = isbn
-        self._book_type = type
+        self._book_type = book_type
         self.duration = duration
         self.existing_items = existing_items
         self.borrowed_items = borrowed_items
@@ -65,9 +72,9 @@ class Book:
 
     def get_approximate_duration(self) -> int:
         if self._book_type == "Paper":
-            return self.pages * 3 * 60
+            return self.pages * time_per_page_paper * 60
         elif self._book_type == "Electronic":
-            return self.pages * 5 * 60
+            return self.pages * time_per_page_electronic * 60
         elif self._book_type == "Audio":
             return self.duration
         else:
@@ -75,11 +82,11 @@ class Book:
 
     def get_weekly_fee(self) -> int:
         if self._book_type == "Paper":
-            return 5
+            return weekly_fee_paper
         elif self._book_type == "Electronic":
-            return 2
+            return weekly_fee_electronic
         elif self._book_type == "Audio":
-            return 2
+            return weekly_fee_audio
         else:
             raise AttributeError("No such book type...")
 
@@ -89,7 +96,7 @@ class Book:
                 self.borrowed_items += 1
             LibraryRepository.update_book(self)
             borrowed_book = BorrowedBook.from_book(self)
-            borrowed_book.due_date = datetime.now() + timedelta(days=7)
+            borrowed_book.due_date = datetime.now() + timedelta(days=max_borrow_days)
             borrowed_book.current_fee = self.get_weekly_fee()
             return borrowed_book
         raise ValueError("Book cannot be borrowed")
@@ -101,7 +108,31 @@ class Book:
         return NotImplemented
 
     def __str__(self):
-        return BookSerializer().serialize(self, "JSON")
+        return self.serialize(self, "JSON")
+
+    def serialize(self, book_format: str):
+        if book_format == "JSON":
+            book_info = {
+                "id": self.isbn,
+                "title": self.title,
+                "authors": [author.get_fullname() for author in self.authors],
+                "available_items": self.existing_items - self.borrowed_items,
+                "borrowed_items": self.borrowed_items,
+            }
+            return json.dumps(book_info)
+        elif book_format == "XML":
+            book_info = et.Element("book", attrib={"id": self.isbn})
+            title = et.SubElement(book_info, "title")
+            title.text = self.title
+            authors = et.SubElement(book_info, "authors")
+            authors.text = ", ".join([author.get_fullname() for author in self.authors])
+            avail = et.SubElement(book_info, "available")
+            avail.text = str(self.existing_items - self.borrowed_items)
+            authors = et.SubElement(book_info, "borrowed")
+            authors.text = str(self.borrowed_items)
+            return et.tostring(book_info, encoding="Unicode")
+        else:
+            raise ValueError(format)
 
 
 class BorrowedBook(Book):
@@ -126,7 +157,7 @@ class BorrowedBook(Book):
         return borrowed_book
 
     def renew_rental(self) -> "BorrowedBook":
-        self.due_date += timedelta(days=7)
+        self.due_date += timedelta(days=max_borrow_days)
         self.current_fee += self.get_weekly_fee()
         return self
 
@@ -144,27 +175,4 @@ class BorrowedBook(Book):
         return NotImplemented
 
 
-class BookSerializer:
-    def serialize(self, book: Book, format: str):
-        if format == "JSON":
-            book_info = {
-                "id": book.isbn,
-                "title": book.title,
-                "authors": [author.get_fullname() for author in book.authors],
-                "available_items": book.existing_items - book.borrowed_items,
-                "borrowed_items": book.borrowed_items,
-            }
-            return json.dumps(book_info)
-        elif format == "XML":
-            book_info = et.Element("book", attrib={"id": book.isbn})
-            title = et.SubElement(book_info, "title")
-            title.text = book.title
-            authors = et.SubElement(book_info, "authors")
-            authors.text = ", ".join([author.get_fullname() for author in book.authors])
-            avail = et.SubElement(book_info, "available")
-            avail.text = str(book.existing_items - book.borrowed_items)
-            authors = et.SubElement(book_info, "borrowed")
-            authors.text = str(book.borrowed_items)
-            return et.tostring(book_info, encoding="Unicode")
-        else:
-            raise ValueError(format)
+
