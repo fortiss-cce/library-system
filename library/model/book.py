@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 import json
+from typing import Union
+from abc import abstractmethod
 from library.model.author import Author
 from library.model.genre import Genre
 from library.model.publisher import Publisher
@@ -7,8 +9,7 @@ import xml.etree.ElementTree as et
 
 from library.persistence.storage import LibraryRepository
 
-
-class Book:
+class BookSerialNumber:
     title: str
     authors: list[Author]
     publisher: Publisher
@@ -20,10 +21,17 @@ class Book:
     existing_items: int
     borrowed_items: int
 
-    _book_type: str
+    _book_type: Union["PaperType", "ElectronicType", "AudioType"]
     duration: int = 0
+    _renew_rental_data: int = 7
 
-    def __init__(self, title, authors, publisher, pub_date, genres, pages, isbn, type, duration=0, existing_items=1, borrowed_items=0):
+    existing_books_list: List[Book]
+    in_stock_list: List[Book]
+    borrowed_books_list: List[Book]
+
+   
+
+    def __init__(self, title, authors, publisher, pub_date, genres, pages, isbn, book_type, duration=0, existing_items=1, borrowed_items=0):
         self.title = title
         self.authors = authors
         self.publisher = publisher
@@ -31,118 +39,87 @@ class Book:
         self.genres = genres
         self.pages = pages
         self.isbn = isbn
-        self._book_type = type
+
+        self.set_book_type(book_type)
+
         self.duration = duration
         self.existing_items = existing_items
-        self.borrowed_items = borrowed_items
 
-    @classmethod
-    def from_borrowed_book(cls, borrowed_book: "BorrowedBook") -> "Book":
-        book = Book(
-            borrowed_book.title,
-            borrowed_book.authors,
-            borrowed_book.publisher,
-            borrowed_book.publication_date,
-            borrowed_book.genres,
-            borrowed_book.pages,
-            borrowed_book.isbn,
-            borrowed_book._book_type,
-            borrowed_book.duration,
-            borrowed_book.existing_items,
-            borrowed_book.borrowed_items,
-        )
-        return book
+        self.borrowed_items = borrowed_items
+        self.in_stock_items = self.existing_items - self.borrowed_items
+
+    def init_existing_books(self):
+        self.existing_books_list = [Book(is_borrowed = False)] * self.existing_items + [Book(is_borrowed = True)] * self.borrowed_items
+    def get_borrowed_books(self): -> List[Book]
+        return [book for book in self.existing_books_list if book.is_borrowed]
+    def get_in_stock_books(self): -> List[Book]
+        return [book for book in self.existing_books_list if not book.is_borrowed ]
+
+    def set_book_type(self, book_type) -> None:
+        if book_type == "Paper":
+            self._book_type = PaperType()
+        elif book_type == "Electronic":
+            self._book_type = ElectronicType()
+        elif book_type == "Audio":
+            self._book_type = AudioType()
+        else:
+            raise AttributeError("No such book type...")
+        print("Book successfully set")
+
 
     def can_borrow(self) -> bool:
-        if self._book_type == "Paper":
-            return self.existing_items - self.borrowed_items > 0
-        elif self._book_type == "Electronic":
-            return True
-        elif self._book_type == "Audio":
-            return True
-        else:
-            raise AttributeError("No such book type...")
-
+        return self._book_type.can_borrow(self) and len(self.in_stock_list) > 0 
+       
     def get_approximate_duration(self) -> int:
-        if self._book_type == "Paper":
-            return self.pages * 3 * 60
-        elif self._book_type == "Electronic":
-            return self.pages * 5 * 60
-        elif self._book_type == "Audio":
-            return self.duration
-        else:
-            raise AttributeError("No such book type...")
-
+        return self._book_type.get_approximate_duration(self) 
+     
     def get_weekly_fee(self) -> int:
-        if self._book_type == "Paper":
-            return 5
-        elif self._book_type == "Electronic":
-            return 2
-        elif self._book_type == "Audio":
-            return 2
-        else:
-            raise AttributeError("No such book type...")
+        return self._book_type.get_weekly_fees()
+
+    def check_books_stock_consistency(self):
+        assert len(self.borrowed_books_list) + self.in_stock_list)== self.existing_items, "Stock not consistent!!!"
 
     def borrow_book(self) -> "BorrowedBook":
-        if self.can_borrow():
-            if self._book_type == "Paper":
-                self.borrowed_items += 1
+
+        if self.can_borrow(): 
             LibraryRepository.update_book(self)
-            borrowed_book = BorrowedBook.from_book(self)
-            borrowed_book.due_date = datetime.now() + timedelta(days=7)
-            borrowed_book.current_fee = self.get_weekly_fee()
+            borrowed_book = self.get_in_stock_books()[0]
+            borrowed_book.set_due_time(datetime.now() + timedelta(days=self._renew_rental_data))
+            borrowed_book.set_current_fee(self.get_weekly_fee())
+            borrowed_book.borrow_book()
+            self.check_books_stock_consistency()
             return borrowed_book
         raise ValueError("Book cannot be borrowed")
-
-    def __eq__(self, other):
-        """Overrides the default implementation"""
-        if isinstance(other, Book) or isinstance(other, BorrowedBook):
-            return self.isbn == other.isbn and self._book_type == other._book_type
-        return NotImplemented
 
     def __str__(self):
         return BookSerializer().serialize(self, "JSON")
 
 
-class BorrowedBook(Book):
+
+class Book():
     due_date: datetime
     current_fee: float
-
-    @classmethod
-    def from_book(cls, book: Book) -> "BorrowedBook":
-        borrowed_book = BorrowedBook(
-            book.title,
-            book.authors,
-            book.publisher,
-            book.publication_date,
-            book.genres,
-            book.pages,
-            book.isbn,
-            book._book_type,
-            book.duration,
-            book.existing_items,
-            book.borrowed_items,
-        )
-        return borrowed_book
-
+    _is_borrowed: bool
+    def __init__(self, is_borrowed: bool)
+  
     def renew_rental(self) -> "BorrowedBook":
-        self.due_date += timedelta(days=7)
+        self.due_date += timedelta(days=self._renew_rental_data)
         self.current_fee += self.get_weekly_fee()
         return self
+    def set_current_fee(self, current_fee): 
+        self.current_fee = current_fee
+    
+    def borrowed_book(self):
+        self._is_borrowed = False
+
 
     def return_book(self) -> Book:
-        if self._book_type == "Paper":
+        if self._book_type.book_type == "Paper":
             self.borrowed_items -= 1
         book = Book.from_borrowed_book(self)
         LibraryRepository.update_book(book)
+        self._is_borrowed = False
         return book
-
-    def __eq__(self, other):
-        """Overrides the default implementation"""
-        if isinstance(other, Book) or isinstance(other, BorrowedBook):
-            return self.isbn == other.isbn and self._book_type == other._book_type
-        return NotImplemented
-
 
 class BookSerializer:
     def serialize(self, book: Book, format: str):
@@ -168,3 +145,46 @@ class BookSerializer:
             return et.tostring(book_info, encoding="Unicode")
         else:
             raise ValueError(format)
+
+class BookType():
+    book_type: str 
+    weekly_fees: int
+    @abstractmethod
+    def can_borrow(self, book: Book):
+        pass
+
+    @abstractmethod
+    def get_approximate_duration(self, book: Book):
+        pass
+    
+    def get_weekly_fees(self):
+        return self.weekly_fees
+
+class PaperType(BookType):
+    book_type: str = "paper"
+    weekly_fees: int = 5
+    page_factor:  int = 180
+    def can_borrow(self, book: Book):
+        return book.existing_items - book.borrowed_items > 0 
+    def get_approximate_duration(self, book: Book):
+        return book.pages * self.pages_factor
+        
+class ElectronicType(BookType):
+    book_type: str = "Electronic"
+    weekly_fees: int = 2
+    page_factor: int = 300
+    def can_borrow(self, book: Book):
+        return True
+    def get_approximate_duration(self, book: Book):
+        return book.pages * self.pages_factor
+        
+class AudioType(BookType):
+    book_type: str = "Audio"
+    weekly_fees: int = 2
+    
+    def can_borrow(self, book: Book):
+        return True
+    def get_approximate_duration(self, book: Book):
+        return book.duration
+        
+
