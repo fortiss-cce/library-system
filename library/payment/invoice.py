@@ -12,14 +12,12 @@ class Invoice:
 
     id: str
     books: list[BorrowedBook]
-    # customer: User
     is_closed: bool = False
     customer_fisrt_name: str
     customer_last_name :str
 
-    def __init__(self, customer_fisrt_name: str, customer_last_name:str):#, user: User):
+    def __init__(self, customer_fisrt_name: str, customer_last_name:str):
         self.id = str(uuid.uuid4())
-        # self.customer = user
         self.books = []
         self.customer_fisrt_name = customer_fisrt_name
         self.customer_last_name = customer_last_name
