@@ -56,9 +56,7 @@ class Book:
     def can_borrow(self) -> bool:
         if self._book_type == "Paper":
             return self.existing_items - self.borrowed_items > 0
-        elif self._book_type == "Electronic":
-            return True
-        elif self._book_type == "Audio":
+        elif self.get_book_type() == "Electronic" or self.get_book_type() == "Audio":
             return True
         else:
             raise AttributeError("No such book type...")
@@ -93,6 +91,9 @@ class Book:
             borrowed_book.current_fee = self.get_weekly_fee()
             return borrowed_book
         raise ValueError("Book cannot be borrowed")
+
+    def get_book_type(self):
+        return self._book_type
 
     def __eq__(self, other):
         """Overrides the default implementation"""

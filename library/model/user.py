@@ -2,6 +2,8 @@ from typing import Optional
 from library.model.book import Book, BorrowedBook
 from library.model.genre import Genre
 from library.persistence.storage import LibraryRepository
+from library.payment.invoice import Invoice
+import logging
 
 
 class User:
@@ -9,14 +11,14 @@ class User:
     email: str
     borrowed_books: list[BorrowedBook]
     read_books: list[Book]
-    invoices: list
+    invoices: list[Invoice]
     firstname: str
     lastname: str
     mobile_number1: str
+    mobile_number2: str
     country_calling_code: str
     area_code: str
     landline_number: str
-    mobile_number2: str
     reading_credits: int = 0
 
     def __init__(self, email, firstname, lastname, mob1, mob2, area_code, landline, country_code):
@@ -40,15 +42,16 @@ class User:
                 LibraryRepository.update_user(self)
                 return borrowed_book
             return None
-        except AttributeError:
+        except AttributeError as e:
+            logging.error(e)
             return None
-        except ValueError:
+        except ValueError as e:
+            logging.error(e)
             return None
 
     def return_books(self, books: list[BorrowedBook]):
-        from library.payment.invoice import Invoice
+        invoice: Invoice = Invoice(self.firstname, self.lastname)
 
-        invoice: Invoice = Invoice(self)
         for borrowed_book in books:
             if borrowed_book in self.borrowed_books:
                 invoice.add_book(borrowed_book)
@@ -56,6 +59,7 @@ class User:
                 book = borrowed_book.return_book()
                 self.read_books.append(book)
                 LibraryRepository.update_book(book)
+                # _return_book_to_library(borrowed_book)
         if len(invoice.books) > 0:
             LibraryRepository.create_invoice(invoice)
             self.invoices.append(invoice)
@@ -77,6 +81,12 @@ class User:
                 else:
                     reading_credits += 0
         return reading_credits
+
+    def _return_book_to_library(self, borrowed_book):
+        self.borrowed_books.remove(borrowed_book)
+        book = borrowed_book.return_book()
+        self.read_books.append(book)
+        LibraryRepository.update_book(book)
 
     def __eq__(self, other):
         """Overrides the default implementation"""

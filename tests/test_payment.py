@@ -97,7 +97,8 @@ def check_invoice():
 
 @then("the customer should be correct")
 def invoice_customer_correct(invoice: Invoice, user: User):
-    assert invoice.customer == user
+    assert invoice.customer_fisrt_name == user.firstname
+    assert invoice.customer_last_name == user.lastname
 
 
 @then("the items on the invoice should be correct")
@@ -137,17 +138,17 @@ def paypal_valid():
 
 
 @when("the user pays with this card")
-def user_pays_card(context, invoice: Invoice, card: CreditCard):
+def user_pays_card(context, invoice: Invoice, card: CreditCard, user: User):
     try:
-        invoice.process_invoice_with_credit_card(card)
+        invoice.process_invoice_with_credit_card(card, user.get_reading_credits(user.borrowed_books))
     except ValueError as e:
         context["exception"] = e
 
 
 @when("the user pays with PayPal")
-def user_pays_paypal(context, invoice: Invoice, paypal: tuple[str, str]):
+def user_pays_paypal(context, invoice: Invoice, paypal: tuple[str, str], user: User):
     try:
-        invoice.process_invoice_with_paypal(paypal[0], paypal[1])
+        invoice.process_invoice_with_paypal(paypal[0], paypal[1], user.get_reading_credits(user.borrowed_books))
     except ValueError as e:
         context["exception"] = e
 
@@ -165,7 +166,7 @@ def credit_card_low_limit(card: CreditCard):
 @when("the limit of the card is higher than the fee")
 def credit_card_high_limit(user: User, card: CreditCard, invoice: Invoice):
     user.reading_credits = 0
-    card.amount = invoice.calculate_fee(user)[0] + 1.0
+    card.amount = invoice.calculate_fee(user.get_reading_credits(user.borrowed_books))[0] + 1.0
 
 
 @then("the card limit should not change")
@@ -181,7 +182,7 @@ def credit_card_changed(card: CreditCard):
 @then("the account balance should be updated")
 def account_balance_changed(paypal, invoice: Invoice, user: User):
     user.reading_credits = 0
-    assert PAYPAL_ACCOUNT_BALANCE[paypal[0]] == 100.0 - invoice.calculate_fee(user)[0]
+    assert PAYPAL_ACCOUNT_BALANCE[paypal[0]] == 100.0 - invoice.calculate_fee(user.get_reading_credits(user.borrowed_books))[0]
 
 
 @then("the invoice should be updated in storage")

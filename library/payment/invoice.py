@@ -1,7 +1,7 @@
 from datetime import datetime
 import uuid
 
-from library.model.user import User
+# from library.model.user import User
 from library.model.book import BorrowedBook, Book
 from library.payment.credit_card import CreditCard
 from library.payment.paypal import PAYPAL_ACCOUNT_BALANCE, PAYPAL_DATA_BASE
@@ -12,18 +12,22 @@ class Invoice:
 
     id: str
     books: list[BorrowedBook]
-    customer: User
+    # customer: User
     is_closed: bool = False
+    customer_fisrt_name: str
+    customer_last_name :str
 
-    def __init__(self, user: User):
+    def __init__(self, customer_fisrt_name: str, customer_last_name:str):#, user: User):
         self.id = str(uuid.uuid4())
-        self.customer = user
+        # self.customer = user
         self.books = []
+        self.customer_fisrt_name = customer_fisrt_name
+        self.customer_last_name = customer_last_name
 
     def add_book(self, book: BorrowedBook):
         self.books.append(book)
 
-    def __str__(self):
+    def __str__(self, reading_credits:int):
         invoice_books = "\n".join(str(book) + ": " + str(book.current_fee) for book in self.books)
         return f"""-- Invoice (id: {self.id}) --
             This is the invoice for customer '{self.customer.firstname} {self.customer.lastname}' ({self.customer.email})
@@ -33,19 +37,16 @@ class Invoice:
 
             -----------------------------------------
 
-            Total amount after discount: {self.calculate_fee(self.customer)[0]} €
-            Gained reading credits for your next purchase: {self.calculate_fee(self.customer)[1]}
+            Total amount after discount: {self.calculate_fee(reading_credits)[0]} €
+            Gained reading credits for your next purchase: {self.calculate_fee(reading_credits)[1]}
             The invoice is {'' if self.is_closed else 'not'} paid."""
 
-    def calculate_fee(self, user: User) -> tuple[float, int]:
+    def calculate_fee(self, reading_credits: int) -> tuple[float, int]:
         price_per_book: float = 3.55
         min_books_for_discount: int = 3
         discount_per_book: float = 0.5
         discount_per_reading_credit: float = 0.5
-        current_reading_credits = user.reading_credits
-        reading_credits: int = user.get_reading_credits(
-            [Book.from_borrowed_book(book) for book in self.books]
-        )
+        current_reading_credits = reading_credits
         price: float = len(self.books) * price_per_book
         for book in self.books:
             price += book.current_fee
@@ -63,27 +64,25 @@ class Invoice:
         card = CreditCard(number, expiration, cvv)
         return self.process_invoice_with_credit_card(card)
 
-    def process_invoice_with_credit_card(self, card: CreditCard) -> bool:
+    def process_invoice_with_credit_card(self, card: CreditCard, reading_credits: int) -> bool:
         if self.is_closed:
             # payment is already processed
             return True
         # validate card information
         if not self._card_is_present_and_valid(card):
             raise ValueError("Payment information is not set or not valid")
-        fee, reading_credits = self.calculate_fee(self.customer)
+        fee, reading_credits = self.calculate_fee(reading_credits)
         is_paid: bool = self._pay_with_credit_card(card, fee)
         if is_paid:
             self.is_closed = True
             LibraryRepository.update_invoice(self)
-            self.customer.reading_credits = reading_credits
-            LibraryRepository.update_user(self.customer)
 
         return is_paid
 
     def _card_is_present_and_valid(self, card: CreditCard) -> bool:
         return card is not None and card.check_validity()
 
-    def process_invoice_with_paypal(self, email: str, password: str) -> bool:
+    def process_invoice_with_paypal(self, email: str, password: str, reading_credits: int) -> bool:
         if self.is_closed:
             # payment is already processed
             return True
@@ -94,13 +93,11 @@ class Invoice:
             or password != PAYPAL_DATA_BASE.get(email, None)
         ):
             raise ValueError("Payment information is not set or not valid")
-        fee, reading_credits = self.calculate_fee(self.customer)
+        fee, reading_credits = self.calculate_fee(reading_credits)
         is_paid: bool = self._pay_with_paypal(email, password, fee)
         if is_paid:
             self.is_closed = True
             LibraryRepository.update_invoice(self)
-            self.customer.reading_credits = reading_credits
-            LibraryRepository.update_user(self.customer)
 
         return is_paid
 
