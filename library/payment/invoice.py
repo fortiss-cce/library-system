@@ -9,11 +9,14 @@ from library.persistence.storage import LibraryRepository
 
 
 class Invoice:
-
     id: str
     books: list[BorrowedBook]
     customer: User
     is_closed: bool = False
+    _price_per_book: float = 3.55
+    _min_books_for_discount: int = 3
+    _discount_per_book: float = 0.5
+    _discount_per_reading_credit: float = 0.5
 
     def __init__(self, user: User):
         self.id = str(uuid.uuid4())
@@ -38,20 +41,16 @@ class Invoice:
             The invoice is {'' if self.is_closed else 'not'} paid."""
 
     def calculate_fee(self, user: User) -> tuple[float, int]:
-        price_per_book: float = 3.55
-        min_books_for_discount: int = 3
-        discount_per_book: float = 0.5
-        discount_per_reading_credit: float = 0.5
         current_reading_credits = user.reading_credits
         reading_credits: int = user.get_reading_credits(
             self.books
         )
-        price: float = len(self.books) * price_per_book
+        price: float = len(self.books) * _price_per_book
         for book in self.books:
             price += book.current_fee
-        discount_count: int = max(0, len(self.books) - min_books_for_discount)
-        discount: float = discount_count * discount_per_book
-        discount += current_reading_credits * discount_per_reading_credit
+        discount_count: int = max(0, len(self.books) - _min_books_for_discount)
+        discount: float = discount_count * _discount_per_book
+        discount += current_reading_credits * _discount_per_reading_credit
         return (
             round(price - discount if price - discount > 0.0 else 0.0, 2),
             reading_credits,
