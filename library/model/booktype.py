@@ -1,5 +1,5 @@
 from enum import Enum
-
+from model.book import Book
 seconds_in_a_minute = 60
 
 class BookType(Enum):
@@ -8,6 +8,13 @@ class BookType(Enum):
     AUDIO = "Audio"
 
 class BookTypeProcessor():
+
+    @staticmethod
+    def book_check_reqrd(book:Book):
+        if book._book_type == BookType.PAPER:
+            return True
+        else:
+            return False
 
     @staticmethod
     def can_borrow(book):

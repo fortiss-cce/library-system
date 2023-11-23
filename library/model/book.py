@@ -66,7 +66,7 @@ class Book:
         
     def borrow_book(self) -> "BorrowedBook":
         if self.can_borrow():
-            if self._book_type == BookType.PAPER:
+            if BookTypeProcessor.book_check_reqrd(self):
                 self.borrowed_items += 1
             LibraryRepository.update_book(self)
             borrowed_book = BorrowedBook.from_book(self)
