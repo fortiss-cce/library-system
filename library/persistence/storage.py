@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from library.model.book import Book
+        from library.model.book import BookCopy
     from library.model.user import User
     from library.model.author import Author
     from library.model.publisher import Publisher
@@ -155,3 +156,10 @@ class LibraryRepository:
         index = invoices.index(invoice)
         if index >= 0:
             invoices.remove(invoice)
+
+    @staticmethod
+    def find_book(self,book_copy: "BookCopy") -> "Book":
+        for book in self.Books.Book:
+            if(book.__eq__(book,book_copy)):
+                return book
+        return None

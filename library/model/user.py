@@ -44,11 +44,11 @@ class User:
                 self.borrowed_books.append(borrowed_book)
                 LibraryRepository.update_user(self)
                 return borrowed_book
-            return None
+            return "Book cannot be borrowed."
         except AttributeError:
-            return None
+            return "Attribute Error"
         except ValueError:
-            return None
+            return "Value Error"
 
     def return_books(self, books: list[BorrowedBook]):
         from library.payment.invoice import Invoice
@@ -58,9 +58,11 @@ class User:
             if borrowed_book in self.borrowed_books:
                 invoice.add_book(borrowed_book)
                 self.borrowed_books.remove(borrowed_book)
-                book = borrowed_book.return_book()
-                self.read_books.append(book)
-                LibraryRepository.update_book(book)
+                book = LibraryRepository.find_book(borrowed_book)
+                if book is not None:
+                    book = borrowed_book.return_book(book)
+                    self.read_books.append(book)
+                    LibraryRepository.update_book(book)
         if len(invoice.books) > 0:
             LibraryRepository.create_invoice(invoice)
             self.invoices.append(invoice)
