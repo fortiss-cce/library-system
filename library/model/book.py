@@ -3,7 +3,8 @@ import json
 from library.model.author import Author
 from library.model.genre import Genre
 from library.model.publisher import Publisher
-from library.model.booktype import BookType
+from library.model.booktype import BookType, BookTypeProcessor
+
 import xml.etree.ElementTree as et
 
 from library.persistence.storage import LibraryRepository
@@ -16,9 +17,6 @@ class Book:
     genres: set[Genre]
     pages: int
     isbn: str
-    fee: float
-    duration: float
-
     existing_items: int
     borrowed_items: int
 
@@ -56,33 +54,20 @@ class Book:
         return book
 
     def can_borrow(self) -> bool:
-        # if self._book_type == BookType.PAPER:
-        #     return self.existing_items - self.borrowed_items > 0
-        # elif self._book_type == BookType.ELECTRONIC:
-        #     return True
-        # elif self._book_type == BookType.AUDIO:
-        #     return True
-        # else:
         try:
-            return BookTypeStatic.can_borrow(self)
+            return BookTypeProcessor.can_borrow(self)
         except:
             raise AttributeError("No such book type...")
 
     def get_approximate_duration(self) -> int:
-        # if self._book_type == "Paper":
-        #     return self.pages * 3 * 60
-        # elif self._book_type == "Electronic":
-        #     return self.pages * 5 * 60
-        # elif self._book_type == "Audio":
-        #     return self.duration
         try:
-            return BookTypeStatic.get_approximate_duration(self)
+            return BookTypeProcessor.get_approximate_duration(self)
         except:
             raise AttributeError("No such book type...")
 
     def get_weekly_fee(self) -> int:
         try:
-            return BookTypeStatic.get_weekly_fee(self)
+            return BookTypeProcessor.get_weekly_fee(self)
         except:
             raise AttributeError("No such book type...")
 

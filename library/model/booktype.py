@@ -7,7 +7,7 @@ class BookType(Enum):
     ELECTRONIC = "Electronic"
     AUDIO = "Audio"
 
-class BookTypeStatic():
+class BookTypeProcessor():
 
     @staticmethod
     def can_borrow(book):
