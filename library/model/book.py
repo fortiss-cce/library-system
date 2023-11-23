@@ -36,23 +36,6 @@ class Book:
         self.existing_items = existing_items
         self.borrowed_items = borrowed_items
 
-    @classmethod
-    def from_borrowed_book(cls, borrowed_book: "BorrowedBook") -> "Book":
-        book = Book(
-            borrowed_book.title,
-            borrowed_book.authors,
-            borrowed_book.publisher,
-            borrowed_book.publication_date,
-            borrowed_book.genres,
-            borrowed_book.pages,
-            borrowed_book.isbn,
-            borrowed_book._book_type,
-            borrowed_book.duration,
-            borrowed_book.existing_items,
-            borrowed_book.borrowed_items,
-        )
-        return book
-
     def serialize(self, format: str):
         if format == "JSON":
             book_info = {
@@ -155,12 +138,10 @@ class BorrowedBook(Book):
         self.current_fee += self.get_weekly_fee()
         return self
 
-    def return_book(self) -> Book:
+    def return_book_to_library(self):
         if self._book_type == "Paper":
             self.borrowed_items -= 1
-        book = Book.from_borrowed_book(self)
-        LibraryRepository.update_book(book)
-        return book
+        return
 
     def __eq__(self, other):
         """Overrides the default implementation"""

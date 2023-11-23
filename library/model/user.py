@@ -53,9 +53,9 @@ class User:
             if borrowed_book in self.borrowed_books:
                 invoice.add_book(borrowed_book)
                 self.borrowed_books.remove(borrowed_book)
-                book = borrowed_book.return_book()
-                self.read_books.append(book)
-                LibraryRepository.update_book(book)
+                borrowed_book.return_book()
+                self.read_books.append(borrowed_book)
+                LibraryRepository.update_book(borrowed_book)
         if len(invoice.books) > 0:
             LibraryRepository.create_invoice(invoice)
             self.invoices.append(invoice)

@@ -44,7 +44,7 @@ class Invoice:
         discount_per_reading_credit: float = 0.5
         current_reading_credits = user.reading_credits
         reading_credits: int = user.get_reading_credits(
-            [Book.from_borrowed_book(book) for book in self.books]
+            self.books
         )
         price: float = len(self.books) * price_per_book
         for book in self.books:
