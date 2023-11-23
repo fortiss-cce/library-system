@@ -85,13 +85,19 @@ class User:
         return NotImplemented
 
     def __str__(self):
+        # formatted tempalte
+        output_template = "{}, {}, ({}): {}{}/{}\n____BORROWED BOOKS____\n{}\n____READ BOOKS____\n{}\n\nOpen invoices: {}"
         borrowed_books = "\n".join(str(book) for book in self.borrowed_books)
         read_books = "\n".join(str(book) for book in self.read_books)
-        return f"""{self.firstname}, {self.lastname} ({self.email}): {self.country_calling_code}{self.area_code}/{self.landline_number}
-            _______BORROWED BOOKS________
-            {borrowed_books}
-            _______READ BOOKS________
-            {read_books}
-
-            Open invoices: {[x.id for x in self.invoices]}
-        """
+        summary = output_template.format(
+                self.firstname,
+                self.lastname,
+                self.email,
+                self.country_calling_code,
+                self.area_code,
+                self.landline_number,
+                borrowed_books,
+                read_books,
+                [invoice.id, for invoice in self.invoices]
+        )
+        return summary
