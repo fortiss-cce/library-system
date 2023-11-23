@@ -54,33 +54,34 @@ class Book:
         return book
 
     def can_borrow(self) -> bool:
-        if self._book_type == BookType.PAPER:
-            return self.existing_items - self.borrowed_items > 0
-        elif self._book_type == BookType.ELECTRONIC:
-            return True
-        elif self._book_type == BookType.AUDIO:
-            return True
-        else:
+        # if self._book_type == BookType.PAPER:
+        #     return self.existing_items - self.borrowed_items > 0
+        # elif self._book_type == BookType.ELECTRONIC:
+        #     return True
+        # elif self._book_type == BookType.AUDIO:
+        #     return True
+        # else:
+        try:
+            return BookTypeStatic.can_borrow(self)
+        except:
             raise AttributeError("No such book type...")
 
     def get_approximate_duration(self) -> int:
-        if self._book_type == "Paper":
-            return self.pages * 3 * 60
-        elif self._book_type == "Electronic":
-            return self.pages * 5 * 60
-        elif self._book_type == "Audio":
-            return self.duration
-        else:
+        # if self._book_type == "Paper":
+        #     return self.pages * 3 * 60
+        # elif self._book_type == "Electronic":
+        #     return self.pages * 5 * 60
+        # elif self._book_type == "Audio":
+        #     return self.duration
+        try:
+            return BookTypeStatic.get_approximate_duration(self)
+        except:
             raise AttributeError("No such book type...")
 
     def get_weekly_fee(self) -> int:
-        if self._book_type == "Paper":
-            return 5
-        elif self._book_type == "Electronic":
-            return 2
-        elif self._book_type == "Audio":
-            return 2
-        else:
+        try:
+            return BookTypeStatic.get_weekly_fee(self)
+        except:
             raise AttributeError("No such book type...")
 
     def borrow_book(self) -> "BorrowedBook":

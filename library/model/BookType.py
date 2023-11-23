@@ -1,6 +1,6 @@
 from enum import Enum
 
-class BookType():
+class BookType(Enum):
     PAPER = "Paper"
     ELECTRONIC = "Electronic"
     AUDIO = "Audio"
