@@ -6,7 +6,123 @@ from library.model.publisher import Publisher
 import xml.etree.ElementTree as et
 
 from library.persistence.storage import LibraryRepository
+from abc import ABCMeta, abstractmethod
 
+class Book(object, metaclass=ABCMeta):
+    title: str
+    authors: list[Author]
+    publisher: Publisher
+    publication_date: datetime
+    genres: list[Genre]
+    isbn: str
+
+    @abstractmethod
+    def __init__(self, title, authors, publisher, pub_date, genres, isbn):
+        self.title = title
+        self.authors = authors
+        self.publisher = publisher
+        self.publication_date = pub_date
+        self.genres = genres
+        self.isbn = isbn
+
+    @classmethod
+    def from_borrowed_book(cls, borrowed_book: "BorrowedBook") -> "Book":
+        book = Book(
+            borrowed_book.title,
+            borrowed_book.authors,
+            borrowed_book.publisher,
+            borrowed_book.publication_date,
+            borrowed_book.genres,
+            borrowed_book.pages,
+            borrowed_book.isbn,
+            borrowed_book._book_type,
+            borrowed_book.duration,
+            borrowed_book.existing_items,
+            borrowed_book.borrowed_items,
+        )
+        return book
+
+    @abstractmethod
+    def can_borrow(self) -> bool:
+        pass
+
+    @abstractmethod
+    def get_approximate_duration(self) -> int:
+        pass
+
+    @abstractmethod
+    def get_weekly_fee(self) -> int:
+        pass
+
+    def borrow_book(self) -> "BorrowedBook":
+        if self.can_borrow():
+            if self._book_type == "Paper":
+                self.borrowed_items += 1
+            LibraryRepository.update_book(self)
+            borrowed_book = BorrowedBook.from_book(self)
+            borrowed_book.due_date = datetime.now() + timedelta(days=7)
+            borrowed_book.current_fee = self.get_weekly_fee()
+            return borrowed_book
+        raise ValueError("Book cannot be borrowed")
+
+    def __eq__(self, other):
+        """Overrides the default implementation"""
+        if isinstance(other, Book) or isinstance(other, BorrowedBook):
+            return self.isbn == other.isbn and (type(self) is type(other))
+        return NotImplemented
+
+    def __str__(self):
+        return BookSerializer.serialize(self, "JSON")
+
+class AudioBook(Book):
+    duration: int = 0
+
+    def __init__(self, title, authors, publisher, pub_date, genres, isbn, duration):
+        Book.__init__(self, title, authors, publisher, pub_date, genres, isbn)
+        self.duration = duration
+    def can_borrow(self) -> bool:
+        return True
+
+    def get_approximate_duration(self) -> int:
+        return self.duration
+
+    def get_weekly_fee(self) -> int:
+        return 2
+
+class ElectronicBook(Book):
+    pages: int
+
+    def __init__(self, title, authors, publisher, pub_date, genres, isbn, pages):
+        Book.__init__(self, title, authors, publisher, pub_date, genres, isbn)
+        self.pages = pages
+    def can_borrow(self) -> bool:
+        return True
+
+    def get_approximate_duration(self) -> int:
+        return self.pages * 5 * 60
+
+    def get_weekly_fee(self) -> int:
+        return 2
+
+class PaperBook(Book):
+    pages: int
+    existing_items: int
+    borrowed_items: int
+
+    def __init__(self, title, authors, publisher, pub_date, genres, isbn, pages, existing_items, borrowed_items):
+        Book.__init__(self, title, authors, publisher, pub_date, genres, isbn)
+        self.pages = pages
+        self.existing_items = existing_items
+        self.borrowed_items = borrowed_items
+
+    def can_borrow(self) -> bool:
+        return self.existing_items - self.borrowed_items > 0
+
+    def get_approximate_duration(self) -> int:
+        return self.pages * 3 * 60
+
+    def get_weekly_fee(self) -> int:
+        return 5
 
 class Book:
     title: str
@@ -145,7 +261,9 @@ class BorrowedBook(Book):
 
 
 class BookSerializer:
-    def serialize(self, book: Book, format: str):
+
+    @staticmethod
+    def serialize(book: Book, format: str):
         if format == "JSON":
             book_info = {
                 "id": book.isbn,
