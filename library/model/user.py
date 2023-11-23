@@ -1,25 +1,25 @@
 from typing import Optional
-from library.model.book import Book, BorrowedBook
+from library.model.book import Book
 from library.model.genre import Genre
 from library.persistence.storage import LibraryRepository
 
 
 class User:
-
-    email: str
-    borrowed_books: list[BorrowedBook]
-    read_books: list[Book]
-    invoices: list
-    firstname: str
-    lastname: str
-    mobile_number1: str
-    country_calling_code: str
-    area_code: str
-    landline_number: str
-    mobile_number2: str
+    # email: str
+    # borrowed_books: list[Book]
+    # read_books: list[Book]
+    # invoices: list
+    # firstname: str
+    # lastname: str
+    # mobile_number1: str
+    # country_calling_code: str
+    # area_code: str
+    # landline_number: str
+    # mobile_number2: str
     reading_credits: int = 0
 
-    def __init__(self, email, firstname, lastname, mob1, mob2, area_code, landline, country_code):
+    def __init__(self, email: str, firstname: str, lastname: str, mob1: str, mob2: str, area_code: str,
+                 landline: str, country_code: str):
         self.email = email
         self.firstname = firstname
         self.lastname = lastname
@@ -32,7 +32,7 @@ class User:
         self.read_books = []
         self.invoices = []
 
-    def borrow_book(self, book: Book) -> Optional[BorrowedBook]:
+    def borrow_book(self, book: Book) -> Optional[Book]:
         try:
             if book.can_borrow():
                 borrowed_book = book.borrow_book()
@@ -45,7 +45,7 @@ class User:
         except ValueError:
             return None
 
-    def return_books(self, books: list[BorrowedBook]):
+    def return_books(self, books: list[Book]):
         from library.payment.invoice import Invoice
 
         invoice: Invoice = Invoice(self)
