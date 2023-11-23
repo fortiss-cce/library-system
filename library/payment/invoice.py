@@ -2,7 +2,7 @@ from datetime import datetime
 import uuid
 
 from library.model.user import User
-from library.model.book import BorrowedBook, Book
+from library.model.book import BookCopy, Book
 from library.payment.credit_card import CreditCard
 from library.payment.paypal import PAYPAL_ACCOUNT_BALANCE, PAYPAL_DATA_BASE
 from library.persistence.storage import LibraryRepository
@@ -11,16 +11,21 @@ from library.persistence.storage import LibraryRepository
 class Invoice:
 
     id: str
-    books: list[BorrowedBook]
+    books: list[BookCopy]
     customer: User
     is_closed: bool = False
+
+    price_per_book: float = 3.55
+    min_books_for_discount: int = 3
+    discount_per_book: float = 0.5
+    discount_per_reading_credit: float = 0.5
 
     def __init__(self, user: User):
         self.id = str(uuid.uuid4())
         self.customer = user
         self.books = []
 
-    def add_book(self, book: BorrowedBook):
+    def add_book(self, book: BookCopy):
         self.books.append(book)
 
     def __str__(self):
@@ -38,22 +43,24 @@ class Invoice:
             The invoice is {'' if self.is_closed else 'not'} paid."""
 
     def calculate_fee(self, user: User) -> tuple[float, int]:
-        price_per_book: float = 3.55
-        min_books_for_discount: int = 3
-        discount_per_book: float = 0.5
-        discount_per_reading_credit: float = 0.5
+
         current_reading_credits = user.reading_credits
         reading_credits: int = user.get_reading_credits(
             [Book.from_borrowed_book(book) for book in self.books]
         )
-        price: float = len(self.books) * price_per_book
+        price: float = len(self.books) * self.price_per_book
         for book in self.books:
             price += book.current_fee
-        discount_count: int = max(0, len(self.books) - min_books_for_discount)
-        discount: float = discount_count * discount_per_book
-        discount += current_reading_credits * discount_per_reading_credit
+        discount_count: int = max(0, len(self.books) - self.min_books_for_discount)
+        discount: float = discount_count * self.discount_per_book
+        discount += current_reading_credits * self.discount_per_reading_credit
+        final_price = price - discount
+        if(final_price < 0.0 ):
+            final_price = 0.0
+        # round to two digits after the comma
+        final_price = round(final_price, 2)
         return (
-            round(price - discount if price - discount > 0.0 else 0.0, 2),
+            final_price,
             reading_credits,
         )
 

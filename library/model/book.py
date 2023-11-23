@@ -54,6 +54,7 @@ class Book:
         book = Book(
             borrowed_book.isbn,
             borrowed_book._book_type
+            borrowed_book.genres
         )
         return book
 
@@ -107,6 +108,7 @@ class BookCopy:
         borrowed_book = BookCopy(
             book.isbn,
             book._book_type
+            book.genres
         )
         return borrowed_book
 

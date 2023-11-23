@@ -1,5 +1,5 @@
 from typing import Optional
-from library.model.book import Book, BorrowedBook
+from library.model.book import Book, BookCopy
 from library.model.genre import Genre
 from library.persistence.storage import LibraryRepository
 
@@ -76,7 +76,7 @@ class User:
         for book in books:
             for genre in book.genres:
                 if genre in self._reading_credits_dict.keys():
-                    reading_credits += self.reading_credits_dict[genre]
+                    reading_credits += self._reading_credits_dict[genre]
                 else:
                     reading_credits += 0
         return reading_credits
