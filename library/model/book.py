@@ -132,7 +132,7 @@ class BorrowedBook(Book):
         return self
 
     def return_book(self) -> Book:
-        if self._book_type == "Paper":
+        if self._book_type == BookType.PAPER:
             self.borrowed_items -= 1
         book = Book.from_borrowed_book(self)
         LibraryRepository.update_book(book)
