@@ -53,6 +53,31 @@ class Book:
         )
         return book
 
+    def serialize(self, format: str):
+        if format == "JSON":
+            book_info = {
+                "id": self.isbn,
+                "title": self.title,
+                "authors": [author.get_fullname() for author in self.authors],
+                "available_items": self.existing_items - self.borrowed_items,
+                "borrowed_items": self.borrowed_items,
+            }
+            return json.dumps(book_info)
+        elif format == "XML":
+            book_info = et.Element("book", attrib={"id": book.isbn})
+            title = et.SubElement(book_info, "title")
+            title.text = self.title
+            authors = et.SubElement(book_info, "authors")
+            authors.text = ", ".join([author.get_fullname() for author in book.authors])
+            avail = et.SubElement(book_info, "available")
+            avail.text = str(book.existing_items - book.borrowed_items)
+            authors = et.SubElement(book_info, "borrowed")
+            authors.text = str(book.borrowed_items)
+            return et.tostring(book_info, encoding="Unicode")
+        else:
+            raise ValueError(format)
+    
+
     def can_borrow(self) -> bool:
         if self._book_type == "Paper":
             return self.existing_items - self.borrowed_items > 0
@@ -142,29 +167,3 @@ class BorrowedBook(Book):
         if isinstance(other, Book) or isinstance(other, BorrowedBook):
             return self.isbn == other.isbn and self._book_type == other._book_type
         return NotImplemented
-
-
-class BookSerializer:
-    def serialize(self, book: Book, format: str):
-        if format == "JSON":
-            book_info = {
-                "id": book.isbn,
-                "title": book.title,
-                "authors": [author.get_fullname() for author in book.authors],
-                "available_items": book.existing_items - book.borrowed_items,
-                "borrowed_items": book.borrowed_items,
-            }
-            return json.dumps(book_info)
-        elif format == "XML":
-            book_info = et.Element("book", attrib={"id": book.isbn})
-            title = et.SubElement(book_info, "title")
-            title.text = book.title
-            authors = et.SubElement(book_info, "authors")
-            authors.text = ", ".join([author.get_fullname() for author in book.authors])
-            avail = et.SubElement(book_info, "available")
-            avail.text = str(book.existing_items - book.borrowed_items)
-            authors = et.SubElement(book_info, "borrowed")
-            authors.text = str(book.borrowed_items)
-            return et.tostring(book_info, encoding="Unicode")
-        else:
-            raise ValueError(format)
