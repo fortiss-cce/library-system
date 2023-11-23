@@ -54,26 +54,19 @@ class Book:
         return book
 
     def can_borrow(self) -> bool:
-        try:
             return BookTypeProcessor.can_borrow(self)
-        except:
-            raise AttributeError("No such book type...")
+        
 
     def get_approximate_duration(self) -> int:
-        try:
             return BookTypeProcessor.get_approximate_duration(self)
-        except:
-            raise AttributeError("No such book type...")
+        
 
     def get_weekly_fee(self) -> int:
-        try:
-            return BookTypeProcessor.get_weekly_fee(self)
-        except:
-            raise AttributeError("No such book type...")
-
+        return BookTypeProcessor.get_weekly_fee(self)
+        
     def borrow_book(self) -> "BorrowedBook":
         if self.can_borrow():
-            if self._book_type == "Paper":
+            if self._book_type == BookType.PAPER:
                 self.borrowed_items += 1
             LibraryRepository.update_book(self)
             borrowed_book = BorrowedBook.from_book(self)
