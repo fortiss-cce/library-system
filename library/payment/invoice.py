@@ -56,12 +56,6 @@ class Invoice:
             reading_credits,
         )
 
-    def process_invoice_with_credit_card_detail(
-        self, number: str, cvv: str, expiration: datetime
-    ) -> bool:
-        card = CreditCard(number, expiration, cvv)
-        return self.process_invoice_with_credit_card(card)
-
     def process_invoice_with_credit_card(self, card: CreditCard) -> bool:
         if self.is_closed:
             # payment is already processed
