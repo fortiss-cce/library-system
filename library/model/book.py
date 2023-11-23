@@ -17,6 +17,7 @@ class Book:
     pages: int
     isbn: str
 
+    # A book should be considered only a single Book, not a record of books
     existing_items: int
     borrowed_items: int
 
