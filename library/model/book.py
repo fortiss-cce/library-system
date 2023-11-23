@@ -6,146 +6,172 @@ from library.model.publisher import Publisher
 import xml.etree.ElementTree as et
 
 from library.persistence.storage import LibraryRepository
+from abc import ABCMeta, abstractmethod
 
-
-class Book:
+class Book(object, metaclass=ABCMeta):
     title: str
     authors: list[Author]
     publisher: Publisher
     publication_date: datetime
     genres: list[Genre]
-    pages: int
     isbn: str
 
-    existing_items: int
-    borrowed_items: int
-
-    _book_type: str
-    duration: int = 0
-
-    def __init__(self, title, authors, publisher, pub_date, genres, pages, isbn, type, duration=0, existing_items=1, borrowed_items=0):
+    @abstractmethod
+    def __init__(self, title, authors, publisher, pub_date, genres, isbn):
         self.title = title
         self.authors = authors
         self.publisher = publisher
         self.publication_date = pub_date
         self.genres = genres
-        self.pages = pages
         self.isbn = isbn
-        self._book_type = type
-        self.duration = duration
-        self.existing_items = existing_items
-        self.borrowed_items = borrowed_items
 
-    @classmethod
-    def from_borrowed_book(cls, borrowed_book: "BorrowedBook") -> "Book":
-        book = Book(
-            borrowed_book.title,
-            borrowed_book.authors,
-            borrowed_book.publisher,
-            borrowed_book.publication_date,
-            borrowed_book.genres,
-            borrowed_book.pages,
-            borrowed_book.isbn,
-            borrowed_book._book_type,
-            borrowed_book.duration,
-            borrowed_book.existing_items,
-            borrowed_book.borrowed_items,
-        )
-        return book
-
+    @abstractmethod
     def can_borrow(self) -> bool:
-        if self._book_type == "Paper":
-            return self.existing_items - self.borrowed_items > 0
-        elif self._book_type == "Electronic":
-            return True
-        elif self._book_type == "Audio":
-            return True
-        else:
-            raise AttributeError("No such book type...")
+        pass
 
+    @abstractmethod
     def get_approximate_duration(self) -> int:
-        if self._book_type == "Paper":
-            return self.pages * 3 * 60
-        elif self._book_type == "Electronic":
-            return self.pages * 5 * 60
-        elif self._book_type == "Audio":
-            return self.duration
-        else:
-            raise AttributeError("No such book type...")
+        pass
 
+    @abstractmethod
     def get_weekly_fee(self) -> int:
-        if self._book_type == "Paper":
-            return 5
-        elif self._book_type == "Electronic":
-            return 2
-        elif self._book_type == "Audio":
-            return 2
-        else:
-            raise AttributeError("No such book type...")
+        pass
 
+    @abstractmethod
     def borrow_book(self) -> "BorrowedBook":
-        if self.can_borrow():
-            if self._book_type == "Paper":
-                self.borrowed_items += 1
-            LibraryRepository.update_book(self)
-            borrowed_book = BorrowedBook.from_book(self)
-            borrowed_book.due_date = datetime.now() + timedelta(days=7)
-            borrowed_book.current_fee = self.get_weekly_fee()
-            return borrowed_book
-        raise ValueError("Book cannot be borrowed")
+        pass
+
+    def _create_book_borrow(self) -> "BorrowedBook":
+        LibraryRepository.update_book(self)
+        borrowed_book = BorrowedBook(self)
+        return borrowed_book
+
+    @abstractmethod
+    def return_book(self):
+        pass
+
+    def _handle_book_return(self):
+        LibraryRepository.update_book(self)
 
     def __eq__(self, other):
         """Overrides the default implementation"""
         if isinstance(other, Book) or isinstance(other, BorrowedBook):
-            return self.isbn == other.isbn and self._book_type == other._book_type
+            return self.isbn == other.isbn and (type(self) is type(other))
         return NotImplemented
 
     def __str__(self):
-        return BookSerializer().serialize(self, "JSON")
+        return BookSerializer.serialize(self, "JSON")
+
+class AudioBook(Book):
+    duration: int = 0
+
+    def __init__(self, title, authors, publisher, pub_date, genres, isbn, duration):
+        Book.__init__(self, title, authors, publisher, pub_date, genres, isbn)
+        self.duration = duration
+
+    def can_borrow(self) -> bool:
+        return True
+
+    def borrow_book(self) -> "BorrowedBook":
+        if self.can_borrow():
+            return self._create_book_borrow()
+        raise ValueError("Book cannot be borrowed")
+
+    def return_book(self):
+        self._handle_book_return(self)
+
+    def get_approximate_duration(self) -> int:
+        return self.duration
+
+    def get_weekly_fee(self) -> int:
+        return 2
+
+class ElectronicBook(Book):
+    pages: int
+
+    def __init__(self, title, authors, publisher, pub_date, genres, isbn, pages):
+        Book.__init__(self, title, authors, publisher, pub_date, genres, isbn)
+        self.pages = pages
+    def can_borrow(self) -> bool:
+        return True
+
+    def borrow_book(self) -> "BorrowedBook":
+        if self.can_borrow():
+            return self._create_book_borrow()
+        raise ValueError("Book cannot be borrowed")
+
+    def return_book(self):
+        self._handle_book_return(self)
+
+    def get_approximate_duration(self) -> int:
+        return self.pages * 5 * 60
+
+    def get_weekly_fee(self) -> int:
+        return 2
+
+class PaperBook(Book):
+    pages: int
+    existing_items: int
+    borrowed_items: int
+
+    def __init__(self, title, authors, publisher, pub_date, genres, isbn, pages, existing_items, borrowed_items):
+        Book.__init__(self, title, authors, publisher, pub_date, genres, isbn)
+        self.pages = pages
+        self.existing_items = existing_items
+        self.borrowed_items = borrowed_items
+
+    def can_borrow(self) -> bool:
+        return self.existing_items - self.borrowed_items > 0
+
+    def borrow_book(self) -> "BorrowedBook":
+        if self.can_borrow():
+            self.borrowed_items += 1
+            return self._create_book_borrow()
+        raise ValueError("Book cannot be borrowed")
+
+    def return_book(self):
+        self.borrowed_items -= 1
+        self._handle_book_return(self)
+
+    def get_approximate_duration(self) -> int:
+        return self.pages * 3 * 60
+
+    def get_weekly_fee(self) -> int:
+        return 5
 
 
-class BorrowedBook(Book):
+class BorrowedBook():
+    book: Book
     due_date: datetime
     current_fee: float
+    is_returned: bool
 
-    @classmethod
-    def from_book(cls, book: Book) -> "BorrowedBook":
-        borrowed_book = BorrowedBook(
-            book.title,
-            book.authors,
-            book.publisher,
-            book.publication_date,
-            book.genres,
-            book.pages,
-            book.isbn,
-            book._book_type,
-            book.duration,
-            book.existing_items,
-            book.borrowed_items,
-        )
-        return borrowed_book
+    def __init__(self, book):
+        self.book = book
+        self.due_date = datetime.now() + timedelta(days=7)
+        self.current_fee = book.get_weekly_fee()
+        self.is_returned = False
 
-    def renew_rental(self) -> "BorrowedBook":
+    def renew_rental(self):
         self.due_date += timedelta(days=7)
         self.current_fee += self.get_weekly_fee()
-        return self
 
     def return_book(self) -> Book:
-        if self._book_type == "Paper":
-            self.borrowed_items -= 1
-        book = Book.from_borrowed_book(self)
-        LibraryRepository.update_book(book)
-        return book
+        if not self.is_returned:
+            self.book.return_book()
+            self.is_returned = False
+        else:
+            raise ValueError("Book has already been returned")
 
     def __eq__(self, other):
         """Overrides the default implementation"""
-        if isinstance(other, Book) or isinstance(other, BorrowedBook):
-            return self.isbn == other.isbn and self._book_type == other._book_type
-        return NotImplemented
+        return self.book.__eq__(other.book)
 
 
 class BookSerializer:
-    def serialize(self, book: Book, format: str):
+
+    @staticmethod
+    def serialize(book: Book, format: str):
         if format == "JSON":
             book_info = {
                 "id": book.isbn,
