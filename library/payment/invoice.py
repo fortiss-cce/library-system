@@ -1,17 +1,19 @@
 from datetime import datetime
 import uuid
 
+from typing import Optional
+
 from library.model.user import User
-from library.model.book import BorrowedBook, Book
+from library.model.book import Book
 from library.payment.credit_card import CreditCard
-from library.payment.paypal import PAYPAL_ACCOUNT_BALANCE, PAYPAL_DATA_BASE
+from library.payment.paypal import PAYPAL_ACCOUNT_BALANCE, PAYPAL_DATA_BASE, Paypal
 from library.persistence.storage import LibraryRepository
 
 
 class Invoice:
 
     id: str
-    books: list[BorrowedBook]
+    books: list[Book]
     customer: User
     is_closed: bool = False
 
@@ -20,7 +22,7 @@ class Invoice:
         self.customer = user
         self.books = []
 
-    def add_book(self, book: BorrowedBook):
+    def add_book(self, book: Book):
         self.books.append(book)
 
     def __str__(self):
@@ -43,9 +45,8 @@ class Invoice:
         discount_per_book: float = 0.5
         discount_per_reading_credit: float = 0.5
         current_reading_credits = user.reading_credits
-        reading_credits: int = user.get_reading_credits(
-            [Book.from_borrowed_book(book) for book in self.books]
-        )
+        reading_credits: int = user.get_reading_credits(self.books)
+
         price: float = len(self.books) * price_per_book
         for book in self.books:
             price += book.current_fee
@@ -57,21 +58,21 @@ class Invoice:
             reading_credits,
         )
 
-    def process_invoice_with_credit_card_detail(
-        self, number: str, cvv: str, expiration: datetime
-    ) -> bool:
-        card = CreditCard(number, expiration, cvv)
-        return self.process_invoice_with_credit_card(card)
-
-    def process_invoice_with_credit_card(self, card: CreditCard) -> bool:
+    def process_invoice(self, pay_method: Optional[CreditCard, Paypal]):
         if self.is_closed:
             # payment is already processed
             return True
         # validate card information
-        if not self._card_is_present_and_valid(card):
-            raise ValueError("Payment information is not set or not valid")
         fee, reading_credits = self.calculate_fee(self.customer)
-        is_paid: bool = self._pay_with_credit_card(card, fee)
+        if isinstance(pay_method, CreditCard):
+            is_paid: bool = self._pay_with_credit_card(pay_method, fee)
+
+        elif isinstance(pay_method, Paypal):
+            is_paid: bool = self._pay_with_paypal(pay_method.email, pay_method.password, fee)
+
+        else:
+            raise ValueError("Payment information is not set or not valid")
+
         if is_paid:
             self.is_closed = True
             LibraryRepository.update_invoice(self)
@@ -79,30 +80,18 @@ class Invoice:
             LibraryRepository.update_user(self.customer)
 
         return is_paid
+
+    def process_invoice_with_credit_card_detail(
+        self, number: str, cvv: str, expiration: datetime
+    ) -> bool:
+        card = CreditCard(number, expiration, cvv)
+        return self.process_invoice(pay_method=card)
 
     def _card_is_present_and_valid(self, card: CreditCard) -> bool:
         return card is not None and card.check_validity()
 
     def process_invoice_with_paypal(self, email: str, password: str) -> bool:
-        if self.is_closed:
-            # payment is already processed
-            return True
-        # validate account information
-        if (
-            email is None
-            or password is None
-            or password != PAYPAL_DATA_BASE.get(email, None)
-        ):
-            raise ValueError("Payment information is not set or not valid")
-        fee, reading_credits = self.calculate_fee(self.customer)
-        is_paid: bool = self._pay_with_paypal(email, password, fee)
-        if is_paid:
-            self.is_closed = True
-            LibraryRepository.update_invoice(self)
-            self.customer.reading_credits = reading_credits
-            LibraryRepository.update_user(self.customer)
-
-        return is_paid
+        return self.process_invoice(pay_method=Paypal(email, password))
 
     def _pay_with_paypal(self, email: str, password: str, fee: float) -> bool:
         if (
