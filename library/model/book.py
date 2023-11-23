@@ -16,6 +16,8 @@ class Book:
     genres: set[Genre]
     pages: int
     isbn: str
+    fee: float
+    duration: float
 
     existing_items: int
     borrowed_items: int
