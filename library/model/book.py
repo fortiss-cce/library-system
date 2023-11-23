@@ -23,6 +23,19 @@ class Book:
     _book_type: str
     duration: int = 0
 
+    _duration_constant: int = 60
+    _booktype_duration: dict = {
+        "Paper": pages * 3 * _duration_constant,
+        "Audio": duration,
+        "Electronic": pages * 5 * _duration_constant
+    }
+    _booktype_fee: dict = {
+        "Paper": 5,
+        "Audio": 2,
+        "Electronic": 2
+    }
+ 
+
     def __init__(self, title, authors, publisher, pub_date, genres, pages, isbn, type, duration=0, existing_items=1, borrowed_items=0):
         self.title = title
         self.authors = authors
@@ -37,7 +50,7 @@ class Book:
         self.borrowed_items = borrowed_items
 
     @classmethod
-    def from_borrowed_book(cls, borrowed_book: "BorrowedBook") -> "Book":
+    def from_borrowed_book(cls, borrowed_book: "BookCopy") -> "Book":
         book = Book(
             borrowed_book.title,
             borrowed_book.authors,
@@ -48,47 +61,35 @@ class Book:
             borrowed_book.isbn,
             borrowed_book._book_type,
             borrowed_book.duration,
-            borrowed_book.existing_items,
-            borrowed_book.borrowed_items,
         )
         return book
 
     def can_borrow(self) -> bool:
         if self._book_type == "Paper":
             return self.existing_items - self.borrowed_items > 0
-        elif self._book_type == "Electronic":
-            return True
-        elif self._book_type == "Audio":
+        elif self._book_type == "Electronic" or self._book_type == "Audio":
             return True
         else:
             raise AttributeError("No such book type...")
 
     def get_approximate_duration(self) -> int:
-        if self._book_type == "Paper":
-            return self.pages * 3 * 60
-        elif self._book_type == "Electronic":
-            return self.pages * 5 * 60
-        elif self._book_type == "Audio":
-            return self.duration
+        if self._book_type in self._booktype_duration.keys():
+            return self._booktype_duration[self._book_type]
         else:
             raise AttributeError("No such book type...")
 
     def get_weekly_fee(self) -> int:
-        if self._book_type == "Paper":
-            return 5
-        elif self._book_type == "Electronic":
-            return 2
-        elif self._book_type == "Audio":
-            return 2
+        if(self._book_type in self._booktype_fee.keys()):
+            return self._booktype_fee[self._book_type]
         else:
             raise AttributeError("No such book type...")
 
-    def borrow_book(self) -> "BorrowedBook":
+    def borrow_book(self) -> "BookCopy":
         if self.can_borrow():
             if self._book_type == "Paper":
                 self.borrowed_items += 1
             LibraryRepository.update_book(self)
-            borrowed_book = BorrowedBook.from_book(self)
+            borrowed_book = BookCopy.from_book(self)
             borrowed_book.due_date = datetime.now() + timedelta(days=7)
             borrowed_book.current_fee = self.get_weekly_fee()
             return borrowed_book
@@ -96,7 +97,7 @@ class Book:
 
     def __eq__(self, other):
         """Overrides the default implementation"""
-        if isinstance(other, Book) or isinstance(other, BorrowedBook):
+        if isinstance(other, Book) or isinstance(other, BookCopy):
             return self.isbn == other.isbn and self._book_type == other._book_type
         return NotImplemented
 
@@ -104,13 +105,13 @@ class Book:
         return BookSerializer().serialize(self, "JSON")
 
 
-class BorrowedBook(Book):
+class BookCopy(Book):
     due_date: datetime
     current_fee: float
 
     @classmethod
-    def from_book(cls, book: Book) -> "BorrowedBook":
-        borrowed_book = BorrowedBook(
+    def from_book(cls, book: Book) -> "BookCopy":
+        borrowed_book = BookCopy(
             book.title,
             book.authors,
             book.publisher,
@@ -120,12 +121,10 @@ class BorrowedBook(Book):
             book.isbn,
             book._book_type,
             book.duration,
-            book.existing_items,
-            book.borrowed_items,
         )
         return borrowed_book
 
-    def renew_rental(self) -> "BorrowedBook":
+    def renew_rental(self) -> "BookCopy":
         self.due_date += timedelta(days=7)
         self.current_fee += self.get_weekly_fee()
         return self
@@ -139,7 +138,7 @@ class BorrowedBook(Book):
 
     def __eq__(self, other):
         """Overrides the default implementation"""
-        if isinstance(other, Book) or isinstance(other, BorrowedBook):
+        if isinstance(other, Book) or isinstance(other, BookCopy):
             return self.isbn == other.isbn and self._book_type == other._book_type
         return NotImplemented
 
