@@ -19,6 +19,11 @@ class User:
     mobile_number2: str
     reading_credits: int = 0
 
+    _reading_credits_dict: dict = {
+        "HISTORY": 1,
+        "MEDICINE": 2,
+        "SOCIOLOGY": 2
+    }
     def __init__(self, email, firstname, lastname, mob1, mob2, area_code, landline, country_code):
         self.email = email
         self.firstname = firstname
@@ -32,7 +37,7 @@ class User:
         self.read_books = []
         self.invoices = []
 
-    def borrow_book(self, book: Book) -> Optional[BorrowedBook]:
+    def borrow_book(self, book: Book) -> Optional[BookCopy]:
         try:
             if book.can_borrow():
                 borrowed_book = book.borrow_book()
@@ -68,12 +73,8 @@ class User:
         reading_credits: int = 0
         for book in books:
             for genre in book.genres:
-                if genre == Genre.HISTORY:
-                    reading_credits += 1
-                elif genre == Genre.MEDICINE:
-                    reading_credits += 2
-                elif genre == Genre.SOCIOLOGY:
-                    reading_credits += 2
+                if genre in self._reading_credits_dict.keys():
+                    reading_credits += self.reading_credits_dict[genre]
                 else:
                     reading_credits += 0
         return reading_credits
