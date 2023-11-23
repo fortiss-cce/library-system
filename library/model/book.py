@@ -52,15 +52,8 @@ class Book:
     @classmethod
     def from_borrowed_book(cls, borrowed_book: "BookCopy") -> "Book":
         book = Book(
-            borrowed_book.title,
-            borrowed_book.authors,
-            borrowed_book.publisher,
-            borrowed_book.publication_date,
-            borrowed_book.genres,
-            borrowed_book.pages,
             borrowed_book.isbn,
-            borrowed_book._book_type,
-            borrowed_book.duration,
+            borrowed_book._book_type
         )
         return book
 
@@ -105,22 +98,15 @@ class Book:
         return BookSerializer().serialize(self, "JSON")
 
 
-class BookCopy(Book):
+class BookCopy:
     due_date: datetime
     current_fee: float
 
     @classmethod
     def from_book(cls, book: Book) -> "BookCopy":
         borrowed_book = BookCopy(
-            book.title,
-            book.authors,
-            book.publisher,
-            book.publication_date,
-            book.genres,
-            book.pages,
             book.isbn,
-            book._book_type,
-            book.duration,
+            book._book_type
         )
         return borrowed_book
 
@@ -129,10 +115,9 @@ class BookCopy(Book):
         self.current_fee += self.get_weekly_fee()
         return self
 
-    def return_book(self) -> Book:
+    def return_book(self,book: "Book") -> Book:
         if self._book_type == "Paper":
-            self.borrowed_items -= 1
-        book = Book.from_borrowed_book(self)
+            book.borrowed_items -= 1
         LibraryRepository.update_book(book)
         return book
 
