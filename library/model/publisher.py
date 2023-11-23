@@ -1,11 +1,11 @@
 class Publisher:
-    name: str
+    _name: str
 
     def __init__(self, name):
-        self.name = name
+        self._name = name
 
     def __eq__(self, other):
         """Overrides the default implementation"""
         if isinstance(other, Publisher):
-            return self.name == other.name
+            return self._name == other._name
         return NotImplemented

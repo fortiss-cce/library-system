@@ -3,24 +3,24 @@ import json
 from library.model.author import Author
 from library.model.genre import Genre
 from library.model.publisher import Publisher
+from library.model.booktype import BookType, BookTypeProcessor
+
 import xml.etree.ElementTree as et
 
 from library.persistence.storage import LibraryRepository
-
 
 class Book:
     title: str
     authors: list[Author]
     publisher: Publisher
     publication_date: datetime
-    genres: list[Genre]
+    genres: set[Genre]
     pages: int
     isbn: str
-
     existing_items: int
     borrowed_items: int
 
-    _book_type: str
+    _book_type: BookType
     duration: int = 0
 
     def __init__(self, title, authors, publisher, pub_date, genres, pages, isbn, type, duration=0, existing_items=1, borrowed_items=0):
@@ -54,38 +54,19 @@ class Book:
         return book
 
     def can_borrow(self) -> bool:
-        if self._book_type == "Paper":
-            return self.existing_items - self.borrowed_items > 0
-        elif self._book_type == "Electronic":
-            return True
-        elif self._book_type == "Audio":
-            return True
-        else:
-            raise AttributeError("No such book type...")
+            return BookTypeProcessor.can_borrow(self)
+        
 
     def get_approximate_duration(self) -> int:
-        if self._book_type == "Paper":
-            return self.pages * 3 * 60
-        elif self._book_type == "Electronic":
-            return self.pages * 5 * 60
-        elif self._book_type == "Audio":
-            return self.duration
-        else:
-            raise AttributeError("No such book type...")
+            return BookTypeProcessor.get_approximate_duration(self)
+        
 
     def get_weekly_fee(self) -> int:
-        if self._book_type == "Paper":
-            return 5
-        elif self._book_type == "Electronic":
-            return 2
-        elif self._book_type == "Audio":
-            return 2
-        else:
-            raise AttributeError("No such book type...")
-
+        return BookTypeProcessor.get_weekly_fee(self)
+        
     def borrow_book(self) -> "BorrowedBook":
         if self.can_borrow():
-            if self._book_type == "Paper":
+            if BookTypeProcessor.book_check_reqrd(self):
                 self.borrowed_items += 1
             LibraryRepository.update_book(self)
             borrowed_book = BorrowedBook.from_book(self)
@@ -131,7 +112,7 @@ class BorrowedBook(Book):
         return self
 
     def return_book(self) -> Book:
-        if self._book_type == "Paper":
+        if self._book_type == BookType.PAPER:
             self.borrowed_items -= 1
         book = Book.from_borrowed_book(self)
         LibraryRepository.update_book(book)
@@ -145,26 +126,36 @@ class BorrowedBook(Book):
 
 
 class BookSerializer:
-    def serialize(self, book: Book, format: str):
-        if format == "JSON":
-            book_info = {
-                "id": book.isbn,
-                "title": book.title,
-                "authors": [author.get_fullname() for author in book.authors],
-                "available_items": book.existing_items - book.borrowed_items,
-                "borrowed_items": book.borrowed_items,
-            }
-            return json.dumps(book_info)
-        elif format == "XML":
-            book_info = et.Element("book", attrib={"id": book.isbn})
-            title = et.SubElement(book_info, "title")
-            title.text = book.title
-            authors = et.SubElement(book_info, "authors")
-            authors.text = ", ".join([author.get_fullname() for author in book.authors])
-            avail = et.SubElement(book_info, "available")
-            avail.text = str(book.existing_items - book.borrowed_items)
-            authors = et.SubElement(book_info, "borrowed")
-            authors.text = str(book.borrowed_items)
-            return et.tostring(book_info, encoding="Unicode")
+
+    @staticmethod
+    def _serialize_to_json(book: Book):
+        book_info = {
+            "id": book.isbn,
+            "title": book.title,
+            "authors": [author.get_fullname() for author in book.authors],
+            "available_items": book.existing_items - book.borrowed_items,
+            "borrowed_items": book.borrowed_items,
+        }
+        return json.dumps(book_info)
+   
+    @staticmethod
+    def _serialize_to_xml(book: Book):
+        book_info = et.Element("book", attrib={"id": book.isbn})
+        title = et.SubElement(book_info, "title")
+        title.text = book.title
+        authors = et.SubElement(book_info, "authors")
+        authors.text = ", ".join([author.get_fullname() for author in book.authors])
+        avail = et.SubElement(book_info, "available")
+        avail.text = str(book.existing_items - book.borrowed_items)
+        authors = et.SubElement(book_info, "borrowed")
+        authors.text = str(book.borrowed_items)
+        return et.tostring(book_info, encoding="Unicode")
+
+    @staticmethod
+    def serialize(book: Book, format: str):
+        if (format == "JSON"):
+            return BookSerializer._serialize_to_json(book)
+        elif (format == "XML"):
+            return BookSerializer._serialize_to_xml(book)
         else:
             raise ValueError(format)

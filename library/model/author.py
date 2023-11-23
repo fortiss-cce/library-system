@@ -1,23 +1,24 @@
 class Author:
 
-    firstname: str
-    lastname: str
+    _firstname: str
+    _lastname: str
 
     def __init__(self, firstname: str, lastname: str):
-        self.firstname = firstname
-        self.lastname = lastname
+        self._firstname = firstname
+        self._lastname = lastname
+        self._uid=f"{self._firstname} {self._lastname}"
 
     def get_firstname(self) -> str:
-        return self.firstname
+        return self._firstname
 
     def get_lastname(self) -> str:
-        return self.lastname
+        return self._lastname
 
     def get_fullname(self) -> str:
-        return f"{self.firstname} {self.lastname}"
+        return self._uid
 
     def __eq__(self, other):
         """Overrides the default implementation"""
         if isinstance(other, Author):
-            return self.get_fullname() == other.get_fullname()
+            return self._uid == other._uid
         return NotImplemented
